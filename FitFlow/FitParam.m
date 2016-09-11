@@ -6,14 +6,14 @@ properties
     name = '';
     th  = []; % current value
     th0 = [];
-    lb = [];
-    ub = [];
+    th_lb = [];
+    th_ub = [];
 end
 properties (Dependent)
-    fixed
+    th_fix
 end
 methods
-    function Prm = FitParam(name, th0, lb, ub)
+    function Prm = FitParam(name, th0, th_lb, th_ub)
         if nargin == 0, return; end
         
         % Batch instantiation
@@ -32,11 +32,11 @@ methods
         Prm.th  = th0;
         Prm.th0 = th0;
         
-        if nargin < 3, lb = -inf(Prm.get_size()); end
-        if nargin < 4, ub =  inf(Prm.get_size()); end
+        if nargin < 3, th_lb = -inf(Prm.get_size()); end
+        if nargin < 4, th_ub =  inf(Prm.get_size()); end
         
-        Prm.lb = lb;
-        Prm.ub = ub;
+        Prm.th_lb = th_lb;
+        Prm.th_ub = th_ub;
     end
     function Prm = merge(Prm, Prm2)
         for ii = 1:numel(Prm2)
@@ -137,7 +137,7 @@ methods
     end
     function th = get_struct(Prm, prop)
         % th = get_struct(Prm, prop = 'th')
-        % prop: 'th', 'th0', 'lb', 'ub'
+        % prop: 'th', 'th0', 'th_lb', 'th_ub'
         
         if nargin < 2, prop = 'th'; end
         
@@ -166,7 +166,7 @@ methods
     end
     function th = get_vec(Prm, prop)
         % th = get_vec(Prm, prop = 'th'|struct)
-        % prop: 'th', 'th0', 'lb', 'ub'
+        % prop: 'th', 'th0', 'th_lb', 'th_ub'
         
         if nargin < 2, prop = 'th'; end
 %         if ischar(prop)
@@ -216,21 +216,21 @@ methods
         assert(isequal(size(th), Prm.get_size));
         Prm.th0 = th;
     end
-    function set.lb(Prm, th)
+    function set.th_lb(Prm, th)
         assert(isequal(size(th), Prm.get_size));
-        Prm.lb = th;
+        Prm.th_lb = th;
     end
-    function set.ub(Prm, th)
+    function set.th_ub(Prm, th)
         assert(isequal(size(th), Prm.get_size));
-        Prm.ub = th;
+        Prm.th_ub = th;
     end
-    function v = get.fixed(Prm)
-        v = Prm.lb == Prm.ub;
+    function v = get.th_fix(Prm)
+        v = Prm.th_lb == Prm.th_ub;
     end
-    function set.fixed(Prm, v)
+    function set.th_fix(Prm, v)
         if v
-            Prm.lb = Prm.th0;
-            Prm.ub = Prm.th0;
+            Prm.th_lb = Prm.th0;
+            Prm.th_ub = Prm.th0;
         end
     end
     function v = isempty_(Prm)
@@ -239,7 +239,7 @@ methods
     function disp(Param)
         for ii = 1:numel(Param)
             fprintf('%10s %10.2g <- %10.2g [%10.2g, %10.2g]\n', ...
-                Param(ii).name, Param(ii).th, Param(ii).th0, Param(ii).lb, Param(ii).ub);
+                Param(ii).name, Param(ii).th, Param(ii).th0, Param(ii).th_lb, Param(ii).th_ub);
         end
     end
 end
