@@ -1,4 +1,4 @@
-classdef FitFlow_grad_desc < DeepCopyable
+classdef FitFlow_grad_desc < FitWorkspace
 % Bridge between FitWorkspace and optimization functions
 %
 % FitFlow_grad_desc version 7
@@ -7,9 +7,12 @@ classdef FitFlow_grad_desc < DeepCopyable
 %
 % 2015 (c) Yul Kang. yul dot kang dot on at gmail dot com.
 
+properties (Dependent)
+    W
+end
 properties
     W0 = FitWorkspace; % FitWorkspace
-    W  = FitWorkspace; % Set to W0 on fitting.
+    W_ = []; % Set to W0 on fitting.
     save_W = false; % Set to true to save final state. May waste space.
     
     res = struct;
@@ -149,18 +152,18 @@ properties
     VERSION_DESCRIPTION
 end
 properties (Dependent)
-    th
-    th0
-    th_lb
-    th_ub
-    th_fix
+%     th
+%     th0
+%     th_lb
+%     th_ub
+%     th_fix
     
     th_vec
     th0_vec
     th_lb_vec
     th_ub_vec
     th_fix_vec
-    th_names
+%     th_names
     
     th_vec_free
     th0_vec_free
@@ -171,7 +174,9 @@ end
 %% Main
 methods
     function Fl = FitFlow_grad_desc
+        
         Fl.add_deep_copy({'W0', 'W', 'Grid', 'History'}); % 'props', 
+        Fl.W = FitWorkspace;
 
         Fl.VERSION = 7;
         Fl.VERSION_DESCRIPTION = 'Simplified FitFlow6, utilizing FitParams, FitGrid (directly) and FitData (in FitWorkspace).';
@@ -182,6 +187,19 @@ methods
     function set_W0(Fl, W0)
         assert(isa(W0, 'FitWorkspace'));
         Fl.W0 = W0;
+    end
+    function set.W(Fl, W)
+        Fl.set_W(W);
+    end
+    function set_W(Fl, W)
+        Fl.W_ = W;
+        Fl.add_children_props({'W'});
+    end
+    function W = get.W(Fl)
+        W = Fl.get_W;
+    end
+    function W = get_W(Fl)
+        W = Fl.W_;
     end
 end
 %% Fit
@@ -868,35 +886,35 @@ end
 % end
 %% Parameters - struct
 methods
-    function v = get.th(Fl)
-        v = Fl.W.get_struct_recursive('th');
-    end
-    function v = get.th0(Fl)
-        v = Fl.W.get_struct_recursive('th0');
-    end
-    function v = get.th_lb(Fl)
-        v = Fl.W.get_struct_recursive('lb');
-    end
-    function v = get.th_ub(Fl)
-        v = Fl.W.get_struct_recursive('ub');
-    end
+%     function v = get.th(Fl)
+%         v = Fl.W.get_struct_recursive('th');
+%     end
+%     function v = get.th0(Fl)
+%         v = Fl.W.get_struct_recursive('th0');
+%     end
+%     function v = get.th_lb(Fl)
+%         v = Fl.W.get_struct_recursive('lb');
+%     end
+%     function v = get.th_ub(Fl)
+%         v = Fl.W.get_struct_recursive('ub');
+%     end
+% 
+%     function set.th(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'th');
+%     end
+%     function set.th0(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'th0');
+%     end
+%     function set.th_lb(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'lb');
+%     end
+%     function set.th_ub(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'ub');
+%     end
 
-    function set.th(Fl, v)
-        Fl.W.set_struct_recursive(v, 'th');
-    end
-    function set.th0(Fl, v)
-        Fl.W.set_struct_recursive(v, 'th0');
-    end
-    function set.th_lb(Fl, v)
-        Fl.W.set_struct_recursive(v, 'lb');
-    end
-    function set.th_ub(Fl, v)
-        Fl.W.set_struct_recursive(v, 'ub');
-    end
-
-    function v = get.th_names(Fl)
-        v = fieldnames(Fl.W.get_struct_recursive('th'))';
-    end
+%     function v = get.th_names(Fl)
+%         v = fieldnames(Fl.W.get_struct_recursive('th'))';
+%     end
 end
 %% Parameters - vector
 methods
@@ -1014,18 +1032,18 @@ methods
 end
 %% Parameteres - fixed
 methods
-    function S = get.th_fix(Fl)
-        v = num2cell(Fl.th_fix_vec);
-        names = Fl.th_names;
-        S = cell2struct(v(:), names);
-    end
+%     function S = get.th_fix(Fl)
+%         v = num2cell(Fl.th_fix_vec);
+%         names = Fl.th_names;
+%         S = cell2struct(v(:), names);
+%     end
     function v = get.th_fix_vec(Fl)
         v = Fl.W.get_vec_recursive('lb') == Fl.W.get_vec_recursive('ub');
     end
-    function set.th_fix(Fl, S)
-        C = struct2cell(S);
-        Fl.th_fix_vec = logical([C{:}]);
-    end
+%     function set.th_fix(Fl, S)
+%         C = struct2cell(S);
+%         Fl.th_fix_vec = logical([C{:}]);
+%     end
     function set.th_fix_vec(Fl, v)
         assert(all((v(:) == 0) | (v(:) == 1)));
         v = logical(v);
