@@ -6,7 +6,7 @@ properties
     pred_fun = @(W) nan; % Simple predictions. Called from W.pred.
     cost_fun = @(W) nan; % For simple costs. Called from W.calc_cost.
     grad_fun = @(W) nan(1, length(W.get_vec));
-    hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
+    hess_fun = [];
 end
 %% Internal variables
 properties (Dependent)
@@ -19,6 +19,8 @@ end
 %% Methods
 methods
 function W = FitWorkspace
+    W.hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
+    
     W.add_deep_copy({'Data_'});
 end
 function [Fl, res] = fit(W, varargin)
@@ -299,6 +301,7 @@ methods
         %%
         W.cost_fun = @(W) sum((W.th.vec - (2:6)).^2);
         disp(W.get_cost);
+        
         
         %%
         W.fit;
