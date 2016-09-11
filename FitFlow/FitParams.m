@@ -3,6 +3,7 @@ classdef FitParams < DeepCopyable & VisitableTree
 %
 % 2015 (c) Yul Kang. hk2699 at cumc dot columbia dot edu.
     
+%% Internal
 properties
     Param = FitParam; % FitParam object(s).
     Constr = FitConstraints; % constraint object
@@ -23,6 +24,7 @@ properties (Dependent) % For convenience
     
     th_numbered
 end
+%% Methods
 methods
 function Params = FitParams(name, Param_args, Constr_args)
     % Params = FitParams(name, Param_args, Constr_args)
