@@ -320,16 +320,17 @@ methods
 
         % th
         n_th = length(res.out.x);
-        res.th = Fl.th;
+        res.th = Fl.W.th;
 
-        res = copyFields(res, Fl, {'th0', 'th_lb', 'th_ub', 'th_fix', 'th_names'});
-        res.arg.th0 = Fl.th0;
+        res = copyFields(res, Fl.W, ...
+            {'th0', 'th_lb', 'th_ub', 'th_fix', 'th_names'});
+        res.arg.th0 = Fl.W.th0;
         Fl.res = res;
 
         % se
         cov_free = Fl.get_cov_free;
         
-        th_free_vec = ~Fl.th_fix_vec;
+        th_free_vec = ~Fl.W.th_fix_vec;
         res.out.se = zeros(1, n_th);
         res.out.se(th_free_vec) = ...
             sqrt(hVec(diag(cov_free)));
@@ -432,7 +433,7 @@ methods
         Fl.cost = c;
 
     %     % DEBUG
-    %     disp(Fl.th);
+    %     disp(Fl.W.th);
     %     disp(c);
 
         % DEBUG
