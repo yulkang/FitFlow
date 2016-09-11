@@ -297,6 +297,11 @@ methods
         W.add_params({
             {'vec', 1:5, zeros(1,5), 10 + zeros(1,5)}
             });
+        disp(W);
+        
+        %%
+        Fl = W.get_Fl;
+        disp(Fl);
         
         %%
         W.cost_fun = @(W) sum((W.th.vec - (2:6)).^2);

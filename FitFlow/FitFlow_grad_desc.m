@@ -151,26 +151,6 @@ properties
     VERSION
     VERSION_DESCRIPTION
 end
-properties (Dependent)
-%     th
-%     th0
-%     th_lb
-%     th_ub
-%     th_fix
-    
-    th_vec
-    th0_vec
-    th_lb_vec
-    th_ub_vec
-    th_fix_vec
-%     th_names
-    
-    th_vec_free
-    th0_vec_free
-    th_lb_vec_free
-    th_ub_vec_free
-    th_names_free
-end
 %% Main
 methods
     function Fl = FitFlow_grad_desc
@@ -916,66 +896,6 @@ methods
 %         v = fieldnames(Fl.W.get_struct_recursive('th'))';
 %     end
 end
-%% Parameters - vector
-methods
-    function v = get.th_vec(Fl)
-        v = Fl.W.get_vec_recursive('th');
-    end
-    function v = get.th0_vec(Fl)
-        v = Fl.W.get_vec_recursive('th0');
-    end
-    function v = get.th_lb_vec(Fl)
-        v = Fl.W.get_vec_recursive('lb');
-    end
-    function v = get.th_ub_vec(Fl)
-        v = Fl.W.get_vec_recursive('ub');
-    end
-
-    function set.th_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'th');
-    end
-    function set.th0_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'th0');
-    end
-    function set.th_lb_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'lb');
-    end
-    function set.th_ub_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'ub');
-    end
-end
-%% Parameters - free
-methods
-    function v = get.th_vec_free(Fl)
-        v = Fl.th_vec(~Fl.th_fix_vec);
-    end
-    function v = get.th0_vec_free(Fl)
-        v = Fl.th0_vec(~Fl.th_fix_vec);
-    end
-    function v = get.th_lb_vec_free(Fl)
-        v = Fl.th_lb_vec(~Fl.th_fix_vec);
-    end
-    function v = get.th_ub_vec_free(Fl)
-        v = Fl.th_ub_vec(~Fl.th_fix_vec);
-    end
-
-    function set.th_vec_free(Fl, v)
-        Fl.th_vec(~Fl.th_fix_vec) = v;
-    end
-    function set.th0_vec_free(Fl, v)
-        Fl.th0_vec(~Fl.th_fix_vec) = v;
-    end
-    function set.th_lb_vec_free(Fl, v)
-        Fl.th_lb_vec(~Fl.th_fix_vec) = v;
-    end
-    function set.th_ub_vec_free(Fl, v)
-        Fl.th_ub_vec(~Fl.th_fix_vec) = v;
-    end
-
-    function v = get.th_names_free(Fl)
-        v = Fl.th_names(~Fl.th_fix_vec);
-    end
-end
 %% Parameters - typical scale
 methods
     function v = get_th_typical_scale(Fl)
@@ -1028,36 +948,6 @@ methods
 
         th_free_vec = ~Fl.th_fix_vec;
         corrcoefmat = corrcoefmat(th_free_vec, th_free_vec);
-    end
-end
-%% Parameteres - fixed
-methods
-%     function S = get.th_fix(Fl)
-%         v = num2cell(Fl.th_fix_vec);
-%         names = Fl.th_names;
-%         S = cell2struct(v(:), names);
-%     end
-    function v = get.th_fix_vec(Fl)
-        v = Fl.W.get_vec_recursive('lb') == Fl.W.get_vec_recursive('ub');
-    end
-%     function set.th_fix(Fl, S)
-%         C = struct2cell(S);
-%         Fl.th_fix_vec = logical([C{:}]);
-%     end
-    function set.th_fix_vec(Fl, v)
-        assert(all((v(:) == 0) | (v(:) == 1)));
-        v = logical(v);
-
-        th0 = Fl.W.get_vec_recursive('th0');
-        lb = Fl.W.get_vec_recursive('lb');
-        ub = Fl.W.get_vec_recursive('ub');
-        th = Fl.W.get_vec_recursive('th');
-        lb(v) = th0(v);
-        ub(v) = th0(v);
-        th(v) = th0(v);
-        Fl.W.set_vec_recursive(lb, 'lb');
-        Fl.W.set_vec_recursive(ub, 'ub');
-        Fl.W.set_vec_recursive(th, 'th');
     end
 end
 %% Static methods

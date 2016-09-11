@@ -23,6 +23,18 @@ properties (Dependent) % For convenience
     th_names
     
     th_numbered
+    
+    th_vec
+    th0_vec
+    th_lb_vec
+    th_ub_vec
+    th_fix_vec
+    
+    th_vec_free
+    th0_vec_free
+    th_lb_vec_free
+    th_ub_vec_free
+    th_names_free
 end
 %% Methods
 methods
@@ -776,6 +788,96 @@ methods
                 Params.set_array_(name, v.(name), 'th');
             end
         end
+    end
+end
+%% Parameteres - fixed
+methods
+%     function S = get.th_fix(Fl)
+%         v = num2cell(Fl.th_fix_vec);
+%         names = Fl.th_names;
+%         S = cell2struct(v(:), names);
+%     end
+%     function set.th_fix(Fl, S)
+%         C = struct2cell(S);
+%         Fl.th_fix_vec = logical([C{:}]);
+%     end
+    function v = get.th_fix_vec(Fl)
+        v = Fl.W.get_vec_recursive('th_lb') == Fl.W.get_vec_recursive('th_ub');
+    end
+    function set.th_fix_vec(Fl, v)
+        assert(all((v(:) == 0) | (v(:) == 1)));
+        v = logical(v);
+
+        th0 = Fl.W.get_vec_recursive('th0');
+        lb = Fl.W.get_vec_recursive('th_lb');
+        ub = Fl.W.get_vec_recursive('th_ub');
+        th = Fl.W.get_vec_recursive('th');
+        lb(v) = th0(v);
+        ub(v) = th0(v);
+        th(v) = th0(v);
+        Fl.W.set_vec_recursive(lb, 'th_lb');
+        Fl.W.set_vec_recursive(ub, 'th_ub');
+        Fl.W.set_vec_recursive(th, 'th');
+    end
+end
+%% Parameters - vector
+methods
+    function v = get.th_vec(Params)
+        v = Params.get_vec_recursive('th');
+    end
+    function v = get.th0_vec(Params)
+        v = Params.get_vec_recursive('th0');
+    end
+    function v = get.th_lb_vec(Params)
+        v = Params.get_vec_recursive('th_lb');
+    end
+    function v = get.th_ub_vec(Params)
+        v = Params.get_vec_recursive('th_ub');
+    end
+
+    function set.th_vec(Params, v)
+        Params.set_vec_recursive(v, 'th');
+    end
+    function set.th0_vec(Params, v)
+        Params.set_vec_recursive(v, 'th0');
+    end
+    function set.th_lb_vec(Params, v)
+        Params.set_vec_recursive(v, 'th_lb');
+    end
+    function set.th_ub_vec(Params, v)
+        Params.set_vec_recursive(v, 'th_ub');
+    end
+end
+%% Parameters - free
+methods
+    function v = get.th_vec_free(Fl)
+        v = Fl.th_vec(~Fl.th_fix_vec);
+    end
+    function v = get.th0_vec_free(Fl)
+        v = Fl.th0_vec(~Fl.th_fix_vec);
+    end
+    function v = get.th_lb_vec_free(Fl)
+        v = Fl.th_lb_vec(~Fl.th_fix_vec);
+    end
+    function v = get.th_ub_vec_free(Fl)
+        v = Fl.th_ub_vec(~Fl.th_fix_vec);
+    end
+
+    function set.th_vec_free(Fl, v)
+        Fl.th_vec(~Fl.th_fix_vec) = v;
+    end
+    function set.th0_vec_free(Fl, v)
+        Fl.th0_vec(~Fl.th_fix_vec) = v;
+    end
+    function set.th_lb_vec_free(Fl, v)
+        Fl.th_lb_vec(~Fl.th_fix_vec) = v;
+    end
+    function set.th_ub_vec_free(Fl, v)
+        Fl.th_ub_vec(~Fl.th_fix_vec) = v;
+    end
+
+    function v = get.th_names_free(Fl)
+        v = Fl.th_names(~Fl.th_fix_vec);
     end
 end
 
