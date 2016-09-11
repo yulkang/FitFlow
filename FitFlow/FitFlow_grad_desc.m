@@ -794,6 +794,7 @@ methods
         
         % Shorten names to save space
         names = strrep_cell(names, {
+            'W__', ''
             '__', '-'
             '_', '-'
             'a', ''
