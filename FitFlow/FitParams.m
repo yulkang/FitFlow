@@ -9,17 +9,17 @@ properties
     
     % sub:
     % With FitParams objects as fields.
-    % Field names become prefixes with two underscores: "subname__paramname"
+    % Field th_names become prefixes with two underscores: "subname__paramname"
 %     sub = struct; % Obsolete - replaced with VisitableTree
 end
 properties (Dependent) % For convenience
     th
     th0
-    lb
-    ub
-    fixed
+    th_lb
+    th_ub
+    th_fix
     
-    names
+    th_names
     
     th_numbered
 end
@@ -52,10 +52,10 @@ end
 %% High-level set/get
 function set_th0_safe(Params, name, v)
     % set_th0_safe(Params, name, v)
-    lb = Params.lb.(name);
-    ub = Params.ub.(name);
+    th_lb = Params.th_lb.(name);
+    th_ub = Params.th_ub.(name);
     
-    Params.th0.(name) = min(ub, max(lb, v));
+    Params.th0.(name) = min(th_ub, max(th_lb, v));
 end
 
 %% Dependent props
@@ -65,16 +65,16 @@ end
 function v = get.th0(Params)
     v = Params.get_struct_recursive('th0');
 end
-function v = get.lb(Params)
-    v = Params.get_struct_recursive('lb');
+function v = get.th_lb(Params)
+    v = Params.get_struct_recursive('th_lb');
 end
-function v = get.ub(Params)
-    v = Params.get_struct_recursive('ub');
+function v = get.th_ub(Params)
+    v = Params.get_struct_recursive('th_ub');
 end
-function v = get.fixed(Params)
-    v = Params.get_struct_recursive('fixed');
+function v = get.th_fix(Params)
+    v = Params.get_struct_recursive('th_fix');
 end
-function v = get.names(Params)
+function v = get.th_names(Params)
     v = Params.get_names_recursive;
 end
 
@@ -84,23 +84,23 @@ end
 function set.th0(Params, v)
     Params.set_struct_recursive(v, 'th0');
 end
-function set.lb(Params, v)
-    Params.set_struct_recursive(v, 'lb');
+function set.th_lb(Params, v)
+    Params.set_struct_recursive(v, 'th_lb');
 end
-function set.ub(Params, v)
-    Params.set_struct_recursive(v, 'ub');
+function set.th_ub(Params, v)
+    Params.set_struct_recursive(v, 'th_ub');
 end
-function set.fixed(Params, v)
-    Params.set_struct_recursive(v, 'fixed');
+function set.th_fix(Params, v)
+    Params.set_struct_recursive(v, 'th_fix');
 end
 
 %% Parameters
 function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
     % copy_params(dst, src, names_src)
     % copy_params(dst, src, names_src, names_dst)
-    % The order is reversed for names because names_dst is optional.
+    % The order is reversed for th_names because names_dst is optional.
     if nargin < 3 || isempty(param_names_src)
-        param_names_src = src_Params.names;
+        param_names_src = src_Params.th_names;
     elseif ischar(param_names_src)
         param_names_src = {param_names_src};
     end
@@ -121,15 +121,15 @@ function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
             Param_to_add.name = name_dst; % Breech of encapsulation
             dst_Params.add_param(Param_to_add);
         end
-%         for f = {'th', 'th0', 'lb', 'ub'}
+%         for f = {'th', 'th0', 'th_lb', 'th_ub'}
 %             dst_Params.(f{1}).(name_dst) = src_Params.(f{1}).(name_src);
 %         end
     end
 end
 function add_param(Params, Param)
     % add_param(Params, Param)
-    names = Params.get_names;
-    ix = strcmp(names, Param.name);
+    th_names = Params.get_names;
+    ix = strcmp(th_names, Param.name);
     if any(ix)
         Params.Param(ix) = Param;
     else
@@ -141,48 +141,48 @@ function add_params(Params, args)
     Params.Param = Params.Param.add_params(args);
 end
 function set_(Params, name, prop, v)
-    % set_(Params, name, prop='th'|'th0'|'lb'|'ub', value)
+    % set_(Params, name, prop='th'|'th0'|'th_lb'|'th_ub', value)
     Params.Param = Params.Param.set_(name, prop, v);
 end
 function v = get_(Params, name, prop)
-    % v = get_(Params, name, prop='th'|'th0'|'lb'|'ub')
+    % v = get_(Params, name, prop='th'|'th0'|'th_lb'|'th_ub')
     if nargin < 3, prop = 'th'; end
     v = Params.Param.get_(name, prop);
 end
-function fix_(Params, names)
-    if nargin < 2, names = Params.names; end
-    if ischar(names)
-        names = {names};
+function fix_(Params, th_names)
+    if nargin < 2, th_names = Params.th_names; end
+    if ischar(th_names)
+        th_names = {th_names};
     end
-    for name = names(:)'
-        Params.set_(name{1}, 'lb', Params.get_(name{1}, 'th0'));
-        Params.set_(name{1}, 'ub', Params.get_(name{1}, 'th0'));
+    for name = th_names(:)'
+        Params.set_(name{1}, 'th_lb', Params.get_(name{1}, 'th0'));
+        Params.set_(name{1}, 'th_ub', Params.get_(name{1}, 'th0'));
         Params.set_(name{1}, 'th', Params.get_(name{1}, 'th0'));
     end
 end
-function fix_to_th_(Params, names)
-    if nargin < 2, names = Params.names; end
-    if ischar(names)
-        names = {names};
+function fix_to_th_(Params, th_names)
+    if nargin < 2, th_names = Params.th_names; end
+    if ischar(th_names)
+        th_names = {th_names};
     end
-    for name = names(:)'
+    for name = th_names(:)'
         Params.th0.(name{1}) = Params.th.(name{1});
-        Params.fixed.(name{1}) = true;
+        Params.th_fix.(name{1}) = true;
     end
 end
-function fix_to_th0_(Params, names)
-    if nargin < 2, names = Params.names; end
-    if ischar(names)
-        names = {names};
+function fix_to_th0_(Params, th_names)
+    if nargin < 2, th_names = Params.th_names; end
+    if ischar(th_names)
+        th_names = {th_names};
     end
-    for name = names(:)'
+    for name = th_names(:)'
         Params.th.(name{1}) = Params.th0.(name{1});
-        Params.fixed.(name{1}) = true;
+        Params.th_fix.(name{1}) = true;
     end
 end
-function remove_params(Params, names)
-    % remove_params(Params, names)
-    Params.Param = Params.Param.remove_params(names);
+function remove_params(Params, th_names)
+    % remove_params(Params, th_names)
+    Params.Param = Params.Param.remove_params(th_names);
 end
 function remove_params_all(Params)
     % remove_params_all(Params)
@@ -198,7 +198,7 @@ function v = get_names_recursive(Params)
 end
 function v = get_names_recursive_free(Params)
     % v = get_names_recursive_free(Params)
-    % Get free (not-fixed, lb~=ub) parameters' names.
+    % Get free (not-th_fix, th_lb~=th_ub) parameters' th_names.
     v = Params.get_names_recursive;
     v = v(~Params.get_vec_fix_recursive);
 end
@@ -215,7 +215,7 @@ function Params = merge(Params, Params2)
 end
 function Params = merge_flat(Params, Params2)
     % Params = merge_flat(Params, Params2)
-    % When Params2 has flattened field names, as those from FitGrid.    
+    % When Params2 has flattened field th_names, as those from FitGrid.    
     has_sub = has_children(Params) || has_children(Params2);
 %     has_sub = ~isempty(fieldnames(Params.sub)) || ...
 %               ~isempty(fieldnames(Params2.sub));
@@ -223,7 +223,7 @@ function Params = merge_flat(Params, Params2)
         warning('Recursive merging of constraints not supported yet!');
     end
     
-    for prop = {'th', 'th0', 'lb', 'ub'}
+    for prop = {'th', 'th0', 'th_lb', 'th_ub'}
         Params.set_struct_recursive( ...
             Params2.get_struct_recursive(prop{1}), prop{1});
     end
@@ -352,9 +352,9 @@ function n_el_set = set_vec_recursive(Params, v, prop)
 %     end
 end
 function v = get_vec_fix_recursive(Params)
-    lb = Params.get_vec_recursive('lb');
-    ub = Params.get_vec_recursive('ub');
-    v = isequal_mat_nan(lb, ub);
+    th_lb = Params.get_vec_recursive('th_lb');
+    th_ub = Params.get_vec_recursive('th_ub');
+    v = isequal_mat_nan(th_lb, th_ub);
 end
 function v = fill_vec_recursive(Params, v)
     v = FminconReduce.fill_vec( ...
@@ -621,7 +621,7 @@ function disp(Params)
     f_disp_line();
     
     ds = dataset;
-    for field = {'th', 'th0', 'lb', 'ub', 'fixed'}
+    for field = {'th', 'th0', 'th_lb', 'th_ub', 'th_fix'}
         S = Params.get_struct_recursive(field{1});
         
         params = fieldnames(S)';
@@ -657,7 +657,7 @@ function disp(Params)
 end
 end
 
-%% Get arrays from numbered names
+%% Get arrays from numbered th_names
 methods
     function v = get_array_(Params, th_name, prop)
         % v = get_array_(Params, th_name, prop='th')
@@ -669,26 +669,26 @@ methods
         S = Params.(prop);
         assert(isstruct(S));
         
-        names = fieldnames(S);
-        [~, names] = is_name_followed_by_numbers_and_underscore( ...
-            th_name, names);
-        names = sort(names);
+        th_names = fieldnames(S);
+        [~, th_names] = is_name_followed_by_numbers_and_underscore( ...
+            th_name, th_names);
+        th_names = sort(th_names);
         
 %         len_name = length(th_name);
-%         num_names = cellfun(@(s) s((len_name + 1):end), names, ...
+%         num_names = cellfun(@(s) s((len_name + 1):end), th_names, ...
 %             'UniformOutput', false);
         v = [];
         
-        n = length(names);
+        n = length(th_names);
         
-        [~, subs] = Params.parse_names_numbered(names);
+        [~, subs] = Params.parse_names_numbered(th_names);
         for ii = n:-1:1
-            v(subs{ii}{:}) = S.(names{ii});
+            v(subs{ii}{:}) = S.(th_names{ii});
         end
         
 %         for ii = n:-1:1
 %             subs = num2cell(str2double(strsep_cell(num_names{ii}, '_')));
-%             v(subs{:}) = S.(names{ii});
+%             v(subs{:}) = S.(th_names{ii});
 %         end
     end
     function set_array_(Params, th_name, v, prop)
@@ -701,27 +701,27 @@ methods
         S = Params.(prop);
         assert(isstruct(S));
         
-        names = fieldnames(S);
-        [~, names] = strcmpStart(th_name, names);
-        names = sort(names);
+        th_names = fieldnames(S);
+        [~, th_names] = strcmpStart(th_name, th_names);
+        th_names = sort(th_names);
         
 %         len_name = length(th_name);
-%         num_names = cellfun(@(s) s((len_name + 1):end), names, ...
+%         num_names = cellfun(@(s) s((len_name + 1):end), th_names, ...
 %             'UniformOutput', false);
         
-        n = length(names);
+        n = length(th_names);
         
-        [~, subs] = Params.parse_names_numbered(names);
+        [~, subs] = Params.parse_names_numbered(th_names);
         for ii = n:-1:1
-            Params.(prop).(names{ii}) = v(subs{ii}{:});
+            Params.(prop).(th_names{ii}) = v(subs{ii}{:});
         end
         
 %         for ii = n:-1:1
 %             subs = num2cell(str2double(strsep_cell(num_names{ii}, '_')));
-%             Params.(prop).(names{ii}) = v(subs{:});
+%             Params.(prop).(th_names{ii}) = v(subs{:});
 %         end
     end
-    function [names, numbers] = parse_names_numbered(~, names0)
+    function [th_names, numbers] = parse_names_numbered(~, names0)
         n = numel(names0);
         st0 = regexp(names0, '[_0-9]+$');
         
@@ -732,16 +732,16 @@ methods
             st = find(name(st_underscore:end) ~= '_', 1, 'first') ...
                 + st_underscore - 1;
             
-            names{ii} = name(1:(st_underscore - 1));
+            th_names{ii} = name(1:(st_underscore - 1));
             numbers{ii} = num2cell(str2double(strsep_cell(name(st:end))));
         end
     end
     function v = get_names_numbered(Params)
-        names = Params.names;
-        num_st = regexp(names, '[0-9_]+$');
+        th_names = Params.th_names;
+        num_st = regexp(th_names, '[0-9_]+$');
         tf_names_numbered = ~cellfun(@isempty, num_st);
         
-        names_numbered = names(tf_names_numbered);
+        names_numbered = th_names(tf_names_numbered);
         num_st = num_st(tf_names_numbered);
         
         names_w_number_removed = cellfun(@(s, ix) s(1:(ix(end)-1)), ...
@@ -749,21 +749,21 @@ methods
         v = unique(names_w_number_removed, 'stable');
     end
     function v = get.th_numbered(Params)
-        names = Params.get_names_numbered;
+        th_names = Params.get_names_numbered;
         v = struct;
         
-        for ii = 1:length(names)
-            name = names{ii};
+        for ii = 1:length(th_names)
+            name = th_names{ii};
             
             v.(name) = Params.get_array_(name, 'th');
         end
     end
     function set.th_numbered(Params, v)
         % set.th_numbered(Params, v)
-        names = fieldnames(v);
+        th_names = fieldnames(v);
         
-        for ii = 1:length(names)
-            name = names{ii};
+        for ii = 1:length(th_names)
+            name = th_names{ii};
             
             try
                 Params.set_array_(name, v.(name), 'th');
@@ -798,11 +798,11 @@ function Params = test
     disp(Params)
     
     %% Test vec
-    disp(Params.get_vec_recursive('lb'));
+    disp(Params.get_vec_recursive('th_lb'));
     v = [-1 0 -2 -1];
-    Params.set_vec_recursive(v, 'lb')
+    Params.set_vec_recursive(v, 'th_lb')
     disp(Params);
-    assert(isequal(v, Params.get_vec_recursive('lb')));    
+    assert(isequal(v, Params.get_vec_recursive('th_lb')));    
 end
 end
 end
