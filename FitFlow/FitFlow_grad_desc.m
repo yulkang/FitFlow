@@ -686,11 +686,15 @@ methods
             try
                 curr_fun = S.fun{ii}(Fl);
                 stop = stop || curr_fun(th_vec_, S.optimValues, S.state);
-            catch err
-                if S.catchError
-                    warning(err_msg(err));
-                else
-                    rethrow(err);
+            catch % err
+                try
+                    stop = stop || S.fun{ii}(Fl, th_vec_, S.optimValues, S.state);
+                catch err
+                    if S.catchError
+                        warning(err_msg(err));
+                    else
+                        rethrow(err);
+                    end
                 end
             end
         end
@@ -750,7 +754,7 @@ methods
 
             for ii = 1:length(f)
                 fun = Fl.PlotFcns{ii}(Fl);
-                f{ii} = @(x,v,s) fun(Fl.W.fill_vec_recursive(x), v, s);
+                f{ii} = @(x,v,s) fun(Fl, Fl.W.fill_vec_recursive(x), v, s);
             end
         end
 
@@ -778,14 +782,18 @@ methods
     function stop = optimplotx(Fl, x, optimValues, state, varargin)
         S = varargin2S(varargin, {
             'ix', ':';
+            'exclude_nonscalar', true
             });
         
         stop = false;
 
-        lb = Fl.th_lb_vec_free;
-        ub = Fl.th_ub_vec_free;
-        names = Fl.th_names_free;
-        x = x(~Fl.th_fix_vec);
+        assert(S.exclude_nonscalar, ...
+            'Plotting nonscalar params is not supported yet!');
+        
+        lb = Fl.th_lb_vec_free_scalar;
+        ub = Fl.th_ub_vec_free_scalar;
+        names = Fl.th_names_free_scalar;
+        x = x(Fl.th_is_free_scalar_full);
         
         % Plot a subset if requested
         lb = lb(S.ix);
@@ -794,19 +802,8 @@ methods
         x = x(S.ix);
         
         % Shorten names to save space
-        names = strrep_cell(names, {
-            'W__', ''
-            '__', '-'
-            '_', '-'
-            'a', ''
-            'e', ''
-            'i', ''
-            'o', ''
-            'u', ''
-            'Dtb-', ''
-            'Sq', ''
-            }, [], 'wholeStringOnly', false);
-
+        names = Fl.shorten_th_name(names);
+        
         % Show normalized plot
         n = length(names);
         x_plot = (x - lb) ./ (ub - lb);
@@ -843,6 +840,46 @@ methods
         ylim([0 n+1]);
         bml.plot.beautify;
     end    
+    function stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
+        % stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
+        stop = false;
+        
+        incl = Fl.is_in_th(name);
+        x = x(incl);
+        
+        lb = min(Fl.th_lb_vec(incl));
+        ub = max(Fl.th_ub_vec(incl));
+        v = Fl.th_vec(incl);
+        
+        name_short = Fl.shorten_th_name(name);
+        
+        n = numel(v);
+        barh(1:n, v);
+        ylim([0, (n+1)]);
+        
+        if lb >= ub
+            lb = (lb + ub) / 2 - eps;
+            ub = (lb + ub) / 2 + eps;
+        end
+        xlim([lb, ub]);
+        
+        title(name_short);
+        bml.plot.beautify;
+    end
+    function name = shorten_th_name(~, name)
+        name = strrep_cell(name, {
+            'W__', ''
+            '__', '-'
+            '_', '-'
+            'a', ''
+            'e', ''
+            'i', ''
+            'o', ''
+            'u', ''
+            'Dtb-', ''
+            'Sq', ''
+            }, [], 'wholeStringOnly', false);
+    end
     function stop = optimplotfval(Fl, x, optimValues, state)
         stop = false;
 

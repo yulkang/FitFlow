@@ -16,6 +16,9 @@ properties (Access=private)
     % Cannot access without invoking set_Data and get_Data.
     Data_
 end
+properties (Transient)
+    Fl
+end
 %% Methods
 methods
 function W = FitWorkspace
@@ -38,6 +41,10 @@ function [Fl, res] = fit_grid(W, varargin)
     res = Fl.fit_grid(varargin{:});
 end
 function Fl = get_Fl(W, new_Fl_instance)
+    if ~isempty(W.Fl)
+        Fl = W.Fl;
+        return;
+    end
     if nargin >= 2
         Fl = new_Fl_instance;
     else
@@ -49,6 +56,24 @@ function Fl = get_Fl(W, new_Fl_instance)
         Fl.init_bef_fit;
     catch err
         warning(err_msg(err));
+    end
+end
+function Fl = get_Fl_w_PlotFcns(W)
+    Fl = W.get_Fl;
+    Fl.add_plotfun({
+        @optimplotfval
+        @optimplotx
+        });
+    
+    names_nonscalar = Fl.th_names_nonscalar;
+    if ~isempty(names_nonscalar)
+        for name = names_nonscalar(:)'
+            Fl.add_plotfun({
+                str2func(sprintf( ...
+                    '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s)', ...
+                    name{1}))
+                });
+        end
     end
 end
 function [Fl, c] = test_Fl(W)
@@ -123,10 +148,18 @@ end
 %% Data - etc
 methods
     function n = get_n_tr(W)
-        n = W.Data.get_n_tr;
+        if isa(W.Data, 'FitData')
+            n = W.Data.get_n_tr;
+        else
+            n = nan;
+        end
     end
     function n = get_n_tr0(W)
-        n = W.Data.get_n_tr0;
+        if isa(W.Data, 'FitData')
+            n = W.Data.get_n_tr0;
+        else
+            n = nan;
+        end
     end    
 end
 %% Params and other fields - obsolete. Use VisitorToTree methods.
@@ -296,6 +329,11 @@ methods
         W = feval(class(W0));
         W.add_params({
             {'vec', 1:5, zeros(1,5), 10 + zeros(1,5)}
+            {'vec_mixed', 1:5, [0 0 3 4 5], [10 10 3 4 5]}
+            {'vec_fixed', 1:5, 1:5, 1:5}
+            {'scalar1', 2, 0, 10}
+            {'scalar_fixed', 3, 3, 3}
+            {'scalar2', 5, 3, 6}
             });
         disp(W);
         
@@ -304,13 +342,15 @@ methods
         disp(Fl);
         
         %%
-        W.cost_fun = @(W) sum((W.th.vec - (2:6)).^2);
+        W.cost_fun = @(W) sum((W.th.vec - (6:-1:2)).^4) ...
+            + (W.th.scalar1 - 8) .^ 2 ...
+            + (W.th.scalar2 - 8) .^ 2;
         disp(W.get_cost);
         
-        
         %%
-        W.fit;
-        disp(W.th.vec);
+        Fl = W.get_Fl_w_PlotFcns;
+        Fl.fit;
+        disp(Fl.res.th.vec);
     end
 end
 end

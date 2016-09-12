@@ -35,6 +35,18 @@ properties (Dependent) % For convenience
     th_lb_vec_free
     th_ub_vec_free
     th_names_free
+    
+    th_names_nonscalar
+    
+    th_is_scalar
+    th_is_scalar_full
+    th_is_free_scalar_full
+    th_names_scalar
+    th_names_free_scalar
+    th_vec_free_scalar
+    th0_vec_free_scalar
+    th_lb_vec_free_scalar
+    th_ub_vec_free_scalar
 end
 %% Methods
 methods
@@ -386,6 +398,8 @@ function n_el_set = set_vec_free_recursive(Params, v, prop)
     
     n_el_set = Params.set_vec_recursive(v, prop);
 end
+
+%% Scalar
 
 %% Struct
 function S = vec2struct_recursive(Params, v)
@@ -876,11 +890,103 @@ methods
         Params.th_ub_vec(~Params.th_fix_vec) = v;
     end
 
-    function v = get.th_names_free(Params)
-        v = Params.th_names(~Params.th_fix_vec);
+    function names = get.th_names_free(Params)
+        names0 = Params.th_names;
+        S = Params.th_fix;
+        n = numel(names0);
+        
+        incl = true(1, n);
+        for ii = 1:n
+            name = names0{ii};
+            if all(S.(name))
+                incl(ii) = false;
+            end
+        end
+        names = names0(incl);
     end
 end
-
+%% Parameters - scalar
+methods
+    function v = get.th_is_scalar(Params)
+        names = Params.th_names;
+        th = Params.th;
+        n = numel(names);
+        v = false(1, n);
+        for ii = 1:n
+            v(ii) = isscalar(th.(names{ii}));
+        end
+    end
+    function v = get.th_is_scalar_full(Params)
+        names = Params.th_names;
+        th = Params.th;
+        n = numel(names);
+        for ii = 1:n
+            v1 = th.(names{ii});
+            th.(names{ii}) = isscalar(v1) + zeros(size(v1));
+        end
+        v = struct2vec(th);
+    end
+    function v = get.th_is_free_scalar_full(Params)
+        v = Params.th_is_scalar_full & ~Params.th_fix_vec;
+    end
+    function v = get.th_names_scalar(Params)
+        names = Params.th_names;
+        v = names(Params.th_is_scalar);
+    end
+    function names = get.th_names_free_scalar(Params)
+        names0 = Params.th_names_scalar;
+        
+        th_fix = Params.th_fix;
+        n = numel(names0);
+        incl = false(1, n);
+        for ii = 1:n
+            incl(ii) = ~th_fix.(names0{ii});
+        end
+        names = names0(incl);
+    end
+    function v = get.th_vec_free_scalar(Params)
+        v = Params.th_vec(Params.th_is_free_scalar_full);
+    end
+    function v = get.th0_vec_free_scalar(Params)
+        v = Params.th0_vec(Params.th_is_free_scalar_full);
+    end
+    function v = get.th_lb_vec_free_scalar(Params)
+        v = Params.th_lb_vec(Params.th_is_free_scalar_full);
+    end
+    function v = get.th_ub_vec_free_scalar(Params)
+        v = Params.th_ub_vec(Params.th_is_free_scalar_full);
+    end
+end
+%% Params - nonscalar
+methods
+    function v = get.th_names_nonscalar(Params)
+        names = Params.th_names;
+        v = names(~Params.th_is_scalar);
+    end
+    function v = is_in_th(Params, names)
+        if ischar(names)
+            names = {names};
+        else
+            assert(iscell(names));
+            assert(all(cellfun(@ischar, names(:))));
+        end
+            
+        th = Params.th;
+        names0 = fieldnames(th);
+        n = numel(names0);
+            
+        for ii = 1:n
+            name = names0{ii};
+            siz = size(th.(name));
+            if ismember(name, names),
+                th.(name) = true(siz);
+            else
+                th.(name) = false(siz);
+            end
+        end
+        v = struct2vec(th);
+    end
+end
 %% Test
 methods (Static)
 function Params = test
