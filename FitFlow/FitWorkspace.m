@@ -40,7 +40,11 @@ function [Fl, res] = fit_grid(W, varargin)
     Fl = W.get_Fl;
     res = Fl.fit_grid(varargin{:});
 end
-function Fl = get_Fl(W, new_Fl_instance)
+function Fl = get_Fl(W, new_Fl_instance, varargin)
+    S = varargin2S(varargin, {
+        'add_PlotFcns', true
+        });
+    
     if ~isempty(W.Fl)
         Fl = W.Fl;
         return;
@@ -57,13 +61,35 @@ function Fl = get_Fl(W, new_Fl_instance)
     catch err
         warning(err_msg(err));
     end
+    
+    if S.add_PlotFcns
+        W.add_PlotFcns(Fl);
+    end
 end
-function Fl = get_Fl_w_PlotFcns(W)
-    Fl = W.get_Fl;
+function add_PlotFcns(W, Fl, varargin)
+    S = varargin2S(varargin, {
+        'param_per_optimplotx', 5
+        });
+    
+    if nargin < 2 || isempty(Fl)
+        Fl = W.get_Fl;
+    end
+    
     Fl.add_plotfun({
         @optimplotfval
-        @optimplotx
         });
+    
+    names_scalar = Fl.th_names_scalar;
+    n = numel(names_scalar);
+    for ii = 1:ceil(n / S.param_per_optimplotx)
+        st = (ii - 1) * S.param_per_optimplotx + 1;
+        en = min(st - 1 + S.param_per_optimplotx, n);
+        Fl.add_plotfun({
+            str2func(sprintf( ...
+                '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d)', ...
+                    st, en))
+            });
+    end
     
     names_nonscalar = Fl.th_names_nonscalar;
     if ~isempty(names_nonscalar)
@@ -350,7 +376,7 @@ methods
         disp(W.get_cost);
         
         %%
-        Fl = W.get_Fl_w_PlotFcns;
+        Fl = W.get_Fl;
         Fl.fit;
         disp(Fl.res.th.vec);
     end

@@ -812,6 +812,7 @@ methods
         % Show normalized plot
         n = length(names);
         x_plot = (x - lb) ./ (ub - lb);
+        
         h_bar = findobj(gca, 'Type', 'Bar');
         if isvalidhandle(h_bar)
             set(h_bar, 'XData', 1:n, 'YData', x_plot, 'LineStyle', 'none');
@@ -837,6 +838,7 @@ methods
                     'HorizontalAlignment', h_align{jj});
             end
         end
+        hold off;
 
         set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
         xlim([0 1]);
@@ -872,7 +874,11 @@ methods
             hold on;
         end
         hold off;
-        set(gca, 'YTick', 1:n);
+        
+%         ytick_label = repmat({''}, [1, n]);
+%         ytick_label{1} = '1';
+%         ytick_label{n} = sprintf('%d', n);
+        set(gca, 'YTick', 1:n, 'YTickLabel', []); % ytick_label);
         
         ylim([0, (n+1)]);
         if lb >= ub
@@ -882,7 +888,7 @@ methods
         xlim([lb, ub]);
         set(gca, 'YDir', 'reverse');
         
-        title(name_short);
+        title(sprintf('%s (%d)', name_short, n));
         bml.plot.beautify;
     end
     function name = shorten_th_name(~, name)
