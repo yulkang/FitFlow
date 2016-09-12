@@ -795,10 +795,10 @@ methods
         assert(S.exclude_nonscalar, ...
             'Plotting nonscalar params is not supported yet!');
         
-        lb = Fl.th_lb_vec_free_scalar;
-        ub = Fl.th_ub_vec_free_scalar;
-        names = Fl.th_names_free_scalar;
-        x = x(Fl.th_is_free_scalar_full);
+        lb = Fl.th_lb_vec_scalar;
+        ub = Fl.th_ub_vec_scalar;
+        names = Fl.th_names_scalar;
+        x = x(Fl.th_is_scalar_full);
         
         % Plot a subset if requested
         lb = lb(S.ix);

@@ -41,7 +41,13 @@ properties (Dependent) % For convenience
     th_is_scalar
     th_is_scalar_full
     th_is_free_scalar_full
+
     th_names_scalar
+    th_vec_scalar
+    th0_vec_scalar
+    th_lb_vec_scalar
+    th_ub_vec_scalar
+    
     th_names_free_scalar
     th_vec_free_scalar
     th0_vec_free_scalar
@@ -922,17 +928,31 @@ methods
         n = numel(names);
         for ii = 1:n
             v1 = th.(names{ii});
-            th.(names{ii}) = isscalar(v1) + zeros(size(v1));
+            th.(names{ii}) = repmat(isscalar(v1), size(v1));
         end
         v = struct2vec(th);
     end
     function v = get.th_is_free_scalar_full(Params)
         v = Params.th_is_scalar_full & ~Params.th_fix_vec;
     end
+    
     function v = get.th_names_scalar(Params)
         names = Params.th_names;
         v = names(Params.th_is_scalar);
     end
+    function v = get.th_vec_scalar(Params)
+        v = Params.th_vec(Params.th_is_scalar_full);
+    end
+    function v = get.th0_vec_scalar(Params)
+        v = Params.th0_vec(Params.th_is_scalar_full);
+    end
+    function v = get.th_lb_vec_scalar(Params)
+        v = Params.th_lb_vec(Params.th_is_scalar_full);
+    end
+    function v = get.th_ub_vec_scalar(Params)
+        v = Params.th_ub_vec(Params.th_is_scalar_full);
+    end
+    
     function names = get.th_names_free_scalar(Params)
         names0 = Params.th_names_scalar;
         
