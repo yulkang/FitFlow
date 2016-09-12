@@ -753,7 +753,12 @@ methods
             f = cell(size(Fl.PlotFcns));
 
             for ii = 1:length(f)
-                fun = Fl.PlotFcns{ii}(Fl);
+                fun1 = Fl.PlotFcns{ii};
+                if nargin(fun1) == 1 % old style: @(Fl) @(x,v,s)
+                    fun = Fl.PlotFcns{ii}(Fl);
+                else % new style: @(Fl, x, v, s)
+                    fun = Fl.PlotFcns{ii};
+                end
                 f{ii} = @(x,v,s) fun(Fl, Fl.W.fill_vec_recursive(x), v, s);
             end
         end
