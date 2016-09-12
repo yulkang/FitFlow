@@ -867,6 +867,7 @@ methods
             ub = (lb + ub) / 2 + eps;
         end
         xlim([lb, ub]);
+        set(gca, 'YDir', 'reverse');
         
         title(name_short);
         bml.plot.beautify;
