@@ -833,14 +833,12 @@ methods
 
         for ii = 1:n
             for jj = 1
-%             for jj = 1:2
                 text_update(x_pos(jj), ii, labels{ii, jj}, ...
                     'HorizontalAlignment', h_align{jj});
             end
         end
 
         set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
-%         set(gca, 'YTick', 1:n, 'YTickLabel', names, 'YDir', 'reverse');
         xlim([0 1]);
         ylim([0 n+1]);
         bml.plot.beautify;
@@ -851,17 +849,32 @@ methods
         
         incl = Fl.is_in_th(name);
         x = x(incl);
-        
         lb = min(Fl.th_lb_vec(incl));
         ub = max(Fl.th_ub_vec(incl));
-        v = Fl.th_vec(incl);
         
         name_short = Fl.shorten_th_name(name);
         
-        n = numel(v);
-        barh(1:n, v);
-        ylim([0, (n+1)]);
+        is_fixed = Fl.th_fix_vec(incl);
+        n = nnz(incl);
         
+        for ii = {
+                0, 'c'
+                1, [0 0 0] + 0.7
+                }'
+            
+            [fixed1, color] = deal(ii{:});
+                
+            incl1 = find(is_fixed == fixed1);
+        
+            h_bar = barh(incl1, x(incl1));
+            set(h_bar, 'FaceColor', color, 'LineStyle', 'none');
+            
+            hold on;
+        end
+        hold off;
+        set(gca, 'YTick', 1:n);
+        
+        ylim([0, (n+1)]);
         if lb >= ub
             lb = (lb + ub) / 2 - eps;
             ub = (lb + ub) / 2 + eps;
