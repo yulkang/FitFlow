@@ -42,7 +42,7 @@ function [Fl, res] = fit_grid(W, varargin)
 end
 function Fl = get_Fl(W, new_Fl_instance, varargin)
     S = varargin2S(varargin, {
-        'add_PlotFcns', true
+        'add_plotfun', true
         });
     
     if ~isempty(W.Fl)
@@ -63,43 +63,74 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
 %         warning(err_msg(err));
 %     end
     
-    if S.add_PlotFcns
-        W.add_PlotFcns(Fl);
+    if S.add_plotfun
+        W.add_plotfun(Fl);
     end
 end
-function add_PlotFcns(W, Fl, varargin)
+function add_plotfun(W, Fl, varargin)
+    W.add_plotfun_optimplotfval(Fl, varargin{:});
+    W.add_plotfun_optimplotx(Fl, varargin{:});
+end
+function add_plotfun_optimplotfval(W, Fl)
+    Fl.add_plotfun({
+        @optimplotfval
+        });
+end
+function add_plotfun_optimplotgrad(W, Fl, varargin)
+    C = varargin2C({
+        'src', 'grad'
+        }, varargin);
+    W.add_plotfun_optimplotx(Fl, C{:});
+end
+function add_plotfun_optimplotx(W, Fl, varargin)
     S = varargin2S(varargin, {
         'param_per_optimplotx', 5
+        'src', 'x'
         });
     
     if nargin < 2 || isempty(Fl)
         Fl = W.get_Fl;
     end
     
-    Fl.add_plotfun({
-        @optimplotfval
-        });
-    
     names_scalar = Fl.W.th_names_scalar;
     n = numel(names_scalar);
     for ii = 1:ceil(n / S.param_per_optimplotx)
         st = (ii - 1) * S.param_per_optimplotx + 1;
         en = min(st - 1 + S.param_per_optimplotx, n);
-        Fl.add_plotfun({
-            str2func(sprintf( ...
-                '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d)', ...
-                    st, en))
-            });
+        
+        switch S.src
+            case 'x'
+                Fl.add_plotfun({
+                    str2func(sprintf( ...
+                        '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d)', ...
+                            st, en))
+                    });
+            case 'grad'
+                Fl.add_plotfun({
+                    str2func(sprintf( ...
+                        '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d,''src'',''grad'')', ...
+                            st, en))
+                    });
+        end
     end
     
     names_nonscalar = Fl.W.th_names_nonscalar;
     if ~isempty(names_nonscalar)
         for name = names_nonscalar(:)'
-            Fl.add_plotfun({
-                str2func(sprintf( ...
-                    '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s)', ...
-                    name{1}))
-                });
+            switch S.src
+                case 'x'
+                    Fl.add_plotfun({
+                        str2func(sprintf( ...
+                            '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s)', ...
+                            name{1}))
+                        });
+                case 'grad'
+                    Fl.add_plotfun({
+                        str2func(sprintf( ...
+                            '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s,''src'',''grad'')', ...
+                            name{1}))
+                        });
+            end
         end
     end
 end
