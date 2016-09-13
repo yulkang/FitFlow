@@ -80,7 +80,7 @@ function add_PlotFcns(W, Fl, varargin)
         @optimplotfval
         });
     
-    names_scalar = Fl.th_names_scalar;
+    names_scalar = Fl.W.th_names_scalar;
     n = numel(names_scalar);
     for ii = 1:ceil(n / S.param_per_optimplotx)
         st = (ii - 1) * S.param_per_optimplotx + 1;
@@ -92,7 +92,7 @@ function add_PlotFcns(W, Fl, varargin)
             });
     end
     
-    names_nonscalar = Fl.th_names_nonscalar;
+    names_nonscalar = Fl.W.th_names_nonscalar;
     if ~isempty(names_nonscalar)
         for name = names_nonscalar(:)'
             Fl.add_plotfun({
@@ -105,7 +105,7 @@ function add_PlotFcns(W, Fl, varargin)
 end
 function [Fl, c] = test_Fl(W)
     Fl = W.get_Fl;
-    c = Fl.get_cost(Fl.th_vec);
+    c = Fl.get_cost(Fl.W.th_vec);
     disp(c);
 end
 end

@@ -1,4 +1,4 @@
-classdef FitFlow_grad_desc < FitWorkspace
+classdef FitFlow_grad_desc < DeepCopyable % FitWorkspace
 % Bridge between FitWorkspace and optimization functions
 %
 % FitFlow_grad_desc version 7
@@ -57,38 +57,38 @@ properties
     fit_arg = varargin2map({
         'FminconReduce.fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
+            'x0',  Fl.W.th0_vec
             'A',   []
             'b',   []
             'Aeq', []
             'beq', []
-            'lb',  Fl.th_lb_vec
-            'ub',  Fl.th_ub_vec
+            'lb',  Fl.W.th_lb_vec
+            'ub',  Fl.W.th_ub_vec
             'nonlcon', []
             'options', {}
             });
         'fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
+            'x0',  Fl.W.th0_vec
             'A',   []
             'b',   []
             'Aeq', []
             'beq', []
-            'lb',  Fl.th_lb_vec
-            'ub',  Fl.th_ub_vec
+            'lb',  Fl.W.th_lb_vec
+            'ub',  Fl.W.th_ub_vec
             'nonlcon', []
             'options', {}
             });
         'fminsearchbnd', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
-            'lb',  Fl.th_lb_vec
-            'ub',  Fl.th_ub_vec
+            'x0',  Fl.W.th0_vec
+            'lb',  Fl.W.th_lb_vec
+            'ub',  Fl.W.th_ub_vec
             'options', {}
             });
         'etc_', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
+            'x0',  Fl.W.th0_vec
             });
         });
 
@@ -173,8 +173,8 @@ methods
     end
     function set_W(Fl, W)
         Fl.W_ = W;
-        Fl.set_Data(W.Data);
-        Fl.add_children_props({'W'});
+%         Fl.set_Data(W.Data);
+%         Fl.add_children_props({'W'});
     end
     function W = get.W(Fl)
         W = Fl.get_W;
@@ -241,8 +241,8 @@ methods
             'b',        C_constr{2}
             'Aeq',      C_constr{3}
             'beq',      C_constr{4}
-            'lb',       Fl.th_lb_vec
-            'ub',       Fl.th_ub_vec
+            'lb',       Fl.W.th_lb_vec
+            'ub',       Fl.W.th_ub_vec
             'nonlcon',  C_constr{5}
             }, S.args);
 
@@ -356,7 +356,7 @@ methods
             hessian = Fl.res.out.hessian; 
         end
         
-        th_free_vec = ~Fl.th_fix_vec;
+        th_free_vec = ~Fl.W.th_fix_vec;
         cov_free = inv(hessian(th_free_vec, th_free_vec));
     end
     function res_out = calc_ic(Fl, res)
@@ -370,7 +370,7 @@ methods
         NLL = res.fval;
 
         % Count the number of fixed parameters and subtract from k
-        n_fixed = nnz(Fl.th_fix_vec);
+        n_fixed = nnz(Fl.W.th_fix_vec);
         k = k - n_fixed;
         res.k = k;
         res.n_fixed = n_fixed;
@@ -456,8 +456,8 @@ methods
     end
     function c = iterate(Fl, th_vec)
         % Calculate the cost, plot and print outputs without using the optimizer.
-        if nargin < 2, th_vec = Fl.th_vec; end
-        c = Fl.get_cost(th_vec); % (~Fl.th_fix_vec));
+        if nargin < 2, th_vec = Fl.W.th_vec; end
+        c = Fl.get_cost(th_vec); % (~Fl.W.th_fix_vec));
         Fl.runPlotFcns;
         Fl.runOutputFcns;
     end
@@ -661,7 +661,7 @@ methods
         if nargin >= 2 && ~isempty(x)
             th_vec_ = x;
         else
-            th_vec_ = Fl.th_vec;
+            th_vec_ = Fl.W.th_vec;
         end
 
         if nargin >= 3 && ~isempty(optimValues)
@@ -711,7 +711,7 @@ methods
     function stop = runOutputFcns(Fl)
         f = Fl.get_outputfun;
 
-        th_vec = Fl.th_vec(~Fl.th_fix_vec);
+        th_vec = Fl.W.th_vec(~Fl.W.th_fix_vec);
 
         optimValues = varargin2S({}, {
             'funcCount', Fl.History.n_iter * length(th_vec)
@@ -783,7 +783,7 @@ methods
 
             if mod(v.iteration, Fl.plot_opt.per_iter) == 0
                 if Fl.plot_opt.calc_before_plotting
-                    Fl.th_vec = x;
+                    Fl.W.th_vec = x;
                     Fl.run_iter;
                     assert(Fl.cost == v.fval, 'Discrepancy in cost!');
                 end
@@ -804,10 +804,10 @@ methods
         assert(S.exclude_nonscalar, ...
             'Plotting nonscalar params is not supported yet!');
         
-        lb = Fl.th_lb_vec_scalar;
-        ub = Fl.th_ub_vec_scalar;
-        names = Fl.th_names_scalar;
-        x = x(Fl.th_is_scalar_full);
+        lb = Fl.W.th_lb_vec_scalar;
+        ub = Fl.W.th_ub_vec_scalar;
+        names = Fl.W.th_names_scalar;
+        x = x(Fl.W.th_is_scalar_full);
         
         % Plot a subset if requested
         lb = lb(S.ix);
@@ -858,14 +858,14 @@ methods
         % stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
         stop = false;
         
-        incl = Fl.is_in_th(name);
+        incl = Fl.W.is_in_th(name);
         x = x(incl);
-        lb = min(Fl.th_lb_vec(incl));
-        ub = max(Fl.th_ub_vec(incl));
+        lb = min(Fl.W.th_lb_vec(incl));
+        ub = max(Fl.W.th_ub_vec(incl));
         
         name_short = Fl.shorten_th_name(name);
         
-        is_fixed = Fl.th_fix_vec(incl);
+        is_fixed = Fl.W.th_fix_vec(incl);
         n = nnz(incl);
         
         for ii = {
@@ -972,9 +972,9 @@ end
 %% Parameters - typical scale
 methods
     function v = get_th_typical_scale(Fl)
-        th0 = Fl.th0_vec;
-        th_ub = Fl.th_ub_vec;
-        th_lb = Fl.th_lb_vec;
+        th0 = Fl.W.th0_vec;
+        th_ub = Fl.W.th_ub_vec;
+        th_lb = Fl.W.th_lb_vec;
 
         pos_only = th_lb >= 0;
         neg_only = th_ub <= 0;
@@ -990,7 +990,7 @@ methods
     end
     function v = get_th_typical_scale_free(Fl)
         v = Fl.get_th_typical_scale;
-        v = v(~Fl.th_fix_vec);
+        v = v(~Fl.W.th_fix_vec);
     end
 
     function imagesc_corrcoef_free(Fl)
@@ -1009,17 +1009,17 @@ methods
         n_free = size(corrcoefmat, 1);
         set(gca, ...
             'XTick', 1:n_free, ...
-            'XTickLabel', Fl.th_names_free, ...
+            'XTickLabel', Fl.W.th_names_free, ...
             'XTickLabelRotation', 90, ...
             'YTick', 1:n_free, ...
-            'YTickLabel', Fl.th_names_free);
+            'YTickLabel', Fl.W.th_names_free);
     end
     function corrcoefmat = get_corrcoef_free(Fl)
         covmat = inv(Fl.res.out.hessian);
         sevec = sqrt(diag(covmat));
         corrcoefmat = covmat ./ bsxfun(@times, sevec(:), sevec(:)');
 
-        th_free_vec = ~Fl.th_fix_vec;
+        th_free_vec = ~Fl.W.th_fix_vec;
         corrcoefmat = corrcoefmat(th_free_vec, th_free_vec);
     end
 end
