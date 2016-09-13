@@ -57,6 +57,8 @@ properties (Dependent) % For convenience
     % Gradients
     th_grad
     th_grad_vec
+    th_grad_free
+    th_grad_vec_free
 end
 %% Methods
 methods
@@ -129,7 +131,6 @@ end
 function set.th_fix(Params, v)
     Params.set_struct_recursive(v, 'th_fix');
 end
-
 %% Gradients
 function v = get.th_grad(Params)
     v = Params.get_struct_recursive('th_grad');
@@ -143,7 +144,12 @@ end
 function set.th_grad_vec(Params, v)
     Params.set_vec_recursive(v, 'th_grad');
 end
-
+function v = get.th_grad_vec_free(Params)
+    v = Params.th_grad_vec(~Params.th_fix_vec);
+end
+function set.th_grad_vec_free(Params, v)
+    Params.th_grad_vec(~Params.th_fix_vec) = v;
+end
 %% Parameters
 function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
     % copy_params(dst, src, names_src)
@@ -279,7 +285,6 @@ function Params = merge_flat(Params, Params2)
     end
     Params.Constr = Params.Constr.merge(Params2.Constr);
 end
-
 %% Constraints
 function add_constraints(Params, constrs)
     % add_constraints(Params, {{kind, th_names, args}, {...}, ...})
@@ -321,7 +326,6 @@ function remove_constraints_all(Params, remove_th_all)
         Params.Constr = Params.Constr.remove_all;
     end
 end
-
 %% Subparameters
 function add_sub(Params, name, sub_Params)
     % add_sub(Params, name, sub_Params)    
@@ -355,7 +359,6 @@ function disp_sub_recursive(Params, indent) % , name)
 %         disp_sub_recursive(Params.sub.(sub{1}), indent+4, sub{1});
 %     end
 end
-
 %% Vector - use struct
 function v = get_vec(Params, prop)
     if nargin < 2, prop = 'th'; end
@@ -422,9 +425,6 @@ function n_el_set = set_vec_free_recursive(Params, v, prop)
     
     n_el_set = Params.set_vec_recursive(v, prop);
 end
-
-%% Scalar
-
 %% Struct
 function S = vec2struct_recursive(Params, v)
     % S = vec2struct_recursive(Params, v)
@@ -582,8 +582,7 @@ function [c, ceq] = get_constr_res(Params)
         [c, ceq] = C{5}(Params.get_vec_recursive);
     end
 end
-
-%% Properties
+%% Object Properties
 function set_Param(Params, Param)
     assert(isa(Param, 'FitParam'));
     Params.Param = Param;
@@ -592,8 +591,7 @@ function set_Constr(Params, Constr)
     assert(isa(Constr, 'FitConstraint'));
     Params.Constr = Constr;
 end
-
-%% Copy
+%% Copying
 function Params2 = deep_copy_Params(Params, preserve_class)
     % Params2 = deep_copy_Params(Params, preserve_class = false)
     %
@@ -661,8 +659,7 @@ function Params2 = deep_copy_props(Params2, Params, props)
         end
     end
 end
-
-%% Others
+%% Display
 function disp(Params)
     f_disp_line = @(v) disp(repmat(v, [1, 75]));
     
@@ -718,7 +715,6 @@ function disp(Params)
     end
 end
 end
-
 %% Get arrays from numbered th_names
 methods
     function v = get_array_(Params, th_name, prop)

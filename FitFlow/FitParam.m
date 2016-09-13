@@ -33,11 +33,14 @@ methods
         Prm.th  = th0;
         Prm.th0 = th0;
         
-        if nargin < 3, th_lb = -inf(Prm.get_size()); end
-        if nargin < 4, th_ub =  inf(Prm.get_size()); end
+        siz = Prm.get_size();
+        
+        if nargin < 3, th_lb = -inf(siz); end
+        if nargin < 4, th_ub =  inf(siz); end
         
         Prm.th_lb = th_lb;
         Prm.th_ub = th_ub;
+        Prm.th_grad = zeros(siz);
     end
     function Prm = merge(Prm, Prm2)
         for ii = 1:numel(Prm2)
