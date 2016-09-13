@@ -765,10 +765,11 @@ methods
                 fun1 = Fl.PlotFcns{ii};
                 if nargin(fun1) == 1 % old style: @(Fl) @(x,v,s)
                     fun = Fl.PlotFcns{ii}(Fl);
+                    f{ii} = @(x,v,s) fun(Fl.W.fill_vec_recursive(x), v, s);
                 else % new style: @(Fl, x, v, s)
                     fun = Fl.PlotFcns{ii};
+                    f{ii} = @(x,v,s) fun(Fl, Fl.W.fill_vec_recursive(x), v, s);
                 end
-                f{ii} = @(x,v,s) fun(Fl, Fl.W.fill_vec_recursive(x), v, s);
             end
         end
 
@@ -795,8 +796,9 @@ methods
     end
     function stop = optimplotx(Fl, x, optimValues, state, varargin)
         S = varargin2S(varargin, {
-            'ix', ':';
+            'ix', ':'
             'exclude_nonscalar', true
+            'src', 'x' % 'x'|'grad'
             });
         
         stop = false;
@@ -804,10 +806,24 @@ methods
         assert(S.exclude_nonscalar, ...
             'Plotting nonscalar params is not supported yet!');
         
-        lb = Fl.W.th_lb_vec_scalar;
-        ub = Fl.W.th_ub_vec_scalar;
-        names = Fl.W.th_names_scalar;
-        x = x(Fl.W.th_is_scalar_full);
+        switch S.src
+            case 'x'
+                names = Fl.W.th_names_scalar;
+                x = x(Fl.W.th_is_scalar_full);
+                
+                lb = Fl.W.th_lb_vec_scalar;
+                ub = Fl.W.th_ub_vec_scalar;
+            case 'grad'
+                names = Fl.W.th_names_scalar;
+                x = Fl.W.th_grad_vec;
+                x = x(Fl.W.th_is_scalar_full);
+                
+                lb = Fl.W.th_lb_vec_scalar;
+                ub = Fl.W.th_ub_vec_scalar;
+                
+                scale = ub - lb;
+                x = x ./ scale;
+        end
         
         % Plot a subset if requested
         lb = lb(S.ix);
@@ -850,19 +866,37 @@ methods
         hold off;
 
         set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
-        xlim([0 1]);
+        
+        switch S.src
+            case 'x'
+                xlim([0 1]);
+            case 'grad'
+                % Don't impose xlim.
+                title('dCost/dParam');
+        end
         ylim([0 n+1]);
         bml.plot.beautify;
     end    
     function stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
         % stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
+        S = varargin2S(varargin, {
+            'src', 'x' % 'x'|'grad'
+            });
+        
         stop = false;
         
         incl = Fl.W.is_in_th(name);
-        x = x(incl);
         lb = min(Fl.W.th_lb_vec(incl));
         ub = max(Fl.W.th_ub_vec(incl));
         
+        switch S.src
+            case 'x'
+                x = x(incl);
+            case 'grad'
+                x = Fl.W.th_grad_vec(incl);
+                scale = ub - lb;
+                x = x ./ scale;
+        end
         name_short = Fl.shorten_th_name(name);
         
         is_fixed = Fl.W.th_fix_vec(incl);
@@ -894,10 +928,16 @@ methods
             lb = (lb + ub) / 2 - eps;
             ub = (lb + ub) / 2 + eps;
         end
-        xlim([lb, ub]);
+        switch S.src
+            case 'x'
+                xlim([lb, ub]);
+                title(sprintf('%s (%d)', name_short, n));
+            case 'grad'
+                % Don't impose xlim
+                title(sprintf('dCost/d%s (%d)', name_short, n));
+        end
         set(gca, 'YDir', 'reverse');
         
-        title(sprintf('%s (%d)', name_short, n));
         bml.plot.beautify;
     end
     function name = shorten_th_name(~, name)
