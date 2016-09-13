@@ -55,12 +55,13 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
         Fl = FitFlow;
     end
     Fl.set_W0(W); % .deep_copy);
-    try
-        Fl.W0.init_W0;
-        Fl.init_bef_fit;
-    catch err
-        warning(err_msg(err));
-    end
+    Fl.set_W(W);
+%     try
+%         Fl.W0.init_W0;
+%         Fl.init_bef_fit;
+%     catch err
+%         warning(err_msg(err));
+%     end
     
     if S.add_PlotFcns
         W.add_PlotFcns(Fl);

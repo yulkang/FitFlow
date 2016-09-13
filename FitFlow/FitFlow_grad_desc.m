@@ -173,6 +173,7 @@ methods
     end
     function set_W(Fl, W)
         Fl.W_ = W;
+        Fl.set_Data(W.Data);
         Fl.add_children_props({'W'});
     end
     function W = get.W(Fl)
@@ -686,10 +687,18 @@ methods
             try
                 curr_fun = S.fun{ii}(Fl);
                 stop = stop || curr_fun(th_vec_, S.optimValues, S.state);
-            catch % err
-                try
-                    stop = stop || S.fun{ii}(Fl, th_vec_, S.optimValues, S.state);
-                catch err
+            catch err
+                if abs(nargin(S.fun{ii})) >= 4
+                    try
+                        stop = stop || S.fun{ii}(Fl, th_vec_, S.optimValues, S.state);
+                    catch err
+                        if S.catchError
+                            warning(err_msg(err));
+                        else
+                            rethrow(err);
+                        end
+                    end
+                else
                     if S.catchError
                         warning(err_msg(err));
                     else
