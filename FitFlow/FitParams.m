@@ -646,48 +646,58 @@ end
 
 %% Others
 function disp(Params)
-    f_disp_line = @() disp(repmat('-', [1, 75]));
+    f_disp_line = @(v) disp(repmat(v, [1, 75]));
     
     builtin('disp', Params);
-    f_disp_line();
-    
-    disp('Parameters (recursive)');
-    f_disp_line();
-    
-    ds = dataset;
-    for field = {'th', 'th0', 'th_lb', 'th_ub', 'th_fix'}
-        S = Params.get_struct_recursive(field{1});
-        
-        params = fieldnames(S)';
-        n_params = length(params);
-        for i_param = n_params:-1:1
-            ds = ds_set(ds, i_param, field{1}, {S.(params{i_param})});
+
+    if numel(Params) >= 5
+        disp('(Parameter list is hidden for FitParams array with numel >= 5)');
+    else
+        n = numel(Params);
+        for ii = 1:n
+            Params1 = Params(ii);
+            
+            f_disp_line('=');
+            fprintf('Parameters (recursive) #%d/%d\n', ii, n);
+            f_disp_line('-');
+
+            ds = dataset;
+            for field = {'th', 'th0', 'th_lb', 'th_ub', 'th_fix'}
+                S = Params1.get_struct_recursive(field{1});
+
+                params = fieldnames(S)';
+                n_params = length(params);
+                for i_param = n_params:-1:1
+                    ds = ds_set(ds, i_param, field{1}, {S.(params{i_param})});
+                end
+
+        %         % DEBUG
+        %         disp(S);
+        %         disp(ds);
+            end
+
+            ds.Properties.ObsNames = params;
+            disp(ds);
+            f_disp_line('-');
+
+            disp('Constraints (recursive)');
+            f_disp_line('-');
+            view_constraints(Params1.Constr, Params1.get_cond_cell_recursive);
+            f_disp_line('-');
+            fprintf('SubParams (recursive)\n');
+            f_disp_line('-');
+            Params1.disp_sub_recursive;
+        %     subs = fieldnames(Params1.sub)';
+        %     if isempty(subs)
+        %         fprintf(' (None)\n');
+        %     else
+        %         cfprintf(' %s', subs);
+        %         fprintf('\n');
+        %     end
+            f_disp_line('-');
+            fprintf('\n');
         end
-        
-%         % DEBUG
-%         disp(S);
-%         disp(ds);
     end
-    
-    ds.Properties.ObsNames = params;
-    disp(ds);
-    f_disp_line();
-    
-    disp('Constraints (recursive)');
-    f_disp_line();
-    view_constraints(Params.Constr, Params.get_cond_cell_recursive);
-    f_disp_line();
-    fprintf('SubParams (recursive)\n');
-    f_disp_line();
-    Params.disp_sub_recursive;
-%     subs = fieldnames(Params.sub)';
-%     if isempty(subs)
-%         fprintf(' (None)\n');
-%     else
-%         cfprintf(' %s', subs);
-%         fprintf('\n');
-%     end
-    f_disp_line();
 end
 end
 
