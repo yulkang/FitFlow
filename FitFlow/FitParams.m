@@ -53,6 +53,10 @@ properties (Dependent) % For convenience
     th0_vec_free_scalar
     th_lb_vec_free_scalar
     th_ub_vec_free_scalar
+    
+    % Gradients
+    th_grad
+    th_grad_vec
 end
 %% Methods
 methods
@@ -124,6 +128,20 @@ function set.th_ub(Params, v)
 end
 function set.th_fix(Params, v)
     Params.set_struct_recursive(v, 'th_fix');
+end
+
+%% Gradients
+function v = get.th_grad(Params)
+    v = Params.get_struct_recursive('th_grad');
+end
+function set.th_grad(Params, v)
+    Params.set_struct_recursive(v, 'th_grad');
+end
+function v = get.th_grad_vec(Params)
+    v = Params.get_vec_recursive('th_grad');
+end
+function set.th_grad_vec(Params, v)
+    Params.set_vec_recursive(v, 'th_grad');
 end
 
 %% Parameters

@@ -8,6 +8,7 @@ properties
     th0 = [];
     th_lb = [];
     th_ub = [];
+    th_grad = []; % scalar gradient
 end
 properties (Dependent)
     th_fix
