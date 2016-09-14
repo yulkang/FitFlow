@@ -60,7 +60,7 @@ function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
     % Not using shortcut in function handle, so that it works after
     % converting to string and back.
     fun2 = @(v) FminconReduce.postprocess_output(wrap( ...
-            fun(FminconReduce.fill_vec(x0, to_fix, v)), ...
+            @() fun(FminconReduce.fill_vec(x0, to_fix, v)), ...
         1:nargout), to_fix);
     x02  = x0(~to_fix);
     
@@ -95,10 +95,10 @@ function varargout = postprocess_output(outs, to_fix)
         varargout{1} = outs{1};
     end
     if nargout >= 2 % gradient
-        varargout{2} = FminconReduce.outs{2}(~to_fix);
+        varargout{2} = outs{2}(~to_fix);
     end
     if nargout >= 3 % hessian
-        varargout{3} = FminconReduce.outs{3}(~to_fix, ~to_fix);
+        varargout{3} = outs{3}(~to_fix, ~to_fix);
     end
 end
 function v = fill_vec(x0, to_fix, x_vary)

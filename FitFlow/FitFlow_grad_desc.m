@@ -20,6 +20,11 @@ properties
     % Set on call to get_cost. Useful in sharing this info with
     % other components such as History.
     cost = nan; 
+    grad
+    hess
+    
+    specify_grad = false;
+    specify_hess = false;
     
     %% Grid
     Grid = []; % FitGrid
@@ -198,6 +203,7 @@ methods
             'args', {}
             'opts', {}
             'outs', {}
+            'solver', 'fmincon'
             });
 
         %% optim_fun
@@ -247,11 +253,12 @@ methods
             }, S.args);
 
         % Include in arguments only if nonempty
-        if isfield(S.args, 'options')
-            if isempty(S.args.options), S.args.options = {}; end
-            S.args.options = varargin2S(S.opts, S.args.options);
+        if isfield(S.args, 'options') && ~isempty(S.args.options)
+            C = varargin2C(S.opts, S.args.options);
+            S.args.options = optimoptions(S.solver, C{:});
         elseif ~isempty(S.opts)
-            S.args.options = S.opts;
+            C = varargin2C(S.opts);
+            S.args.options = optimoptions(S.solver, C{:});
         end
 
         %% Prepare output
@@ -415,7 +422,7 @@ methods
 
         Fl.W.init_bef_fit;
     end
-    function c = get_cost(Fl, th_vec)
+    function varargout = get_cost(Fl, th_vec)
         if nargin >= 2
             Fl.W.set_vec_recursive(th_vec);
         end
@@ -430,8 +437,14 @@ methods
         % to avoid duplication of code.
         % % Fl.W.Params2W_recursive;
 
-        c = Fl.W.get_cost;
-        Fl.cost = c;
+        [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        Fl.cost = varargout{1};
+        if nargout >= 2
+            Fl.grad = varargout{2};
+        end
+        if nargout >= 3
+            Fl.hess = varargout{3};
+        end
 
     %     % DEBUG
     %     disp(Fl.W.th);
@@ -462,7 +475,9 @@ methods
         Fl.runOutputFcns;
     end
     function f = get_cost_fun(Fl)
-        f = @(th_vec) Fl.get_cost(th_vec);
+        n_argout = 1 + Fl.specify_grad + Fl.specify_hess;
+        
+        f = @(th_vec) output(@() Fl.get_cost(th_vec), 1:n_argout);
     end
     function W = res2W(Fl)
     %     Fl.init_bef_fit; % (Fl.W); % CAUTION: Commented out because seems to be a bug.
@@ -680,7 +695,9 @@ methods
 
         stop = false;
         h = ghandles(1,n);
+        
         for ii = 1:n
+%             tic;
             h(ii) = subplot(nR, nC, ii);
             if S.cla, cla; end
 
@@ -689,8 +706,9 @@ methods
                 stop = stop || curr_fun(th_vec_, S.optimValues, S.state);
             catch err
                 if abs(nargin(S.fun{ii})) >= 4
+                    curr_fun = S.fun{ii};
                     try
-                        stop = stop || S.fun{ii}(Fl, th_vec_, S.optimValues, S.state);
+                        stop = stop || curr_fun(Fl, th_vec_, S.optimValues, S.state);
                     catch err
                         if S.catchError
                             warning(err_msg(err));
@@ -706,6 +724,8 @@ methods
                     end
                 end
             end
+%             disp(curr_fun);
+%             toc;
         end
     end
     function stop = runOutputFcns(Fl)
@@ -847,7 +867,19 @@ methods
         end
         hold on;
 
+        switch S.src
+            case 'x'
+                xlim([0 1]);
+            case 'grad'
+                % Don't impose xlim.
+                title('dCost/dParam');
+        end
+        ylim([0 n+1]);
+        
         labels = cell(n,2);
+        
+%         x_lim = xlim;
+%         x_pos  = [0.05, 0.95] .* diff(x_lim) + x_lim(1);
         x_pos  = [0.05, 0.95];
         h_align = {'left', 'right'};
 
@@ -857,6 +889,7 @@ methods
             labels{ii,2} = sprintf('');        
         end
 
+%         delete(findobj(gca, 'Type', 'Text'));
         for ii = 1:n
             for jj = 1
                 text_update(x_pos(jj), ii, labels{ii, jj}, ...
@@ -867,14 +900,6 @@ methods
 
         set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
         
-        switch S.src
-            case 'x'
-                xlim([0 1]);
-            case 'grad'
-                % Don't impose xlim.
-                title('dCost/dParam');
-        end
-        ylim([0 n+1]);
         bml.plot.beautify;
     end    
     function stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
