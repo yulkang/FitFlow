@@ -1,7 +1,7 @@
 classdef TestWsGradient < FitWorkspace
 properties
     target = 6:-1:2;
-    target_grad = 2:6;
+    target_grad = 6:-1:2; % 2:6;
 end
 methods
     function W = TestWsGradient(varargin)
