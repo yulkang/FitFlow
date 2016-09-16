@@ -1,4 +1,4 @@
-classdef FitFlow_grad_desc < DeepCopyable
+classdef FitFlow_grad_desc < DeepCopyable % FitWorkspace
 % Bridge between FitWorkspace and optimization functions
 %
 % FitFlow_grad_desc version 7
@@ -7,9 +7,12 @@ classdef FitFlow_grad_desc < DeepCopyable
 %
 % 2015 (c) Yul Kang. yul dot kang dot on at gmail dot com.
 
+properties (Dependent)
+    W
+end
 properties
     W0 = FitWorkspace; % FitWorkspace
-    W  = FitWorkspace; % Set to W0 on fitting.
+    W_ = []; % Set to W0 on fitting.
     save_W = false; % Set to true to save final state. May waste space.
     
     res = struct;
@@ -17,6 +20,11 @@ properties
     % Set on call to get_cost. Useful in sharing this info with
     % other components such as History.
     cost = nan; 
+    grad
+    hess
+    
+    specify_grad = false;
+    specify_hess = false;
     
     %% Grid
     Grid = []; % FitGrid
@@ -54,38 +62,38 @@ properties
     fit_arg = varargin2map({
         'FminconReduce.fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
+            'x0',  Fl.W.th0_vec
             'A',   []
             'b',   []
             'Aeq', []
             'beq', []
-            'lb',  Fl.th_lb_vec
-            'ub',  Fl.th_ub_vec
+            'lb',  Fl.W.th_lb_vec
+            'ub',  Fl.W.th_ub_vec
             'nonlcon', []
             'options', {}
             });
         'fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
+            'x0',  Fl.W.th0_vec
             'A',   []
             'b',   []
             'Aeq', []
             'beq', []
-            'lb',  Fl.th_lb_vec
-            'ub',  Fl.th_ub_vec
+            'lb',  Fl.W.th_lb_vec
+            'ub',  Fl.W.th_ub_vec
             'nonlcon', []
             'options', {}
             });
         'fminsearchbnd', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
-            'lb',  Fl.th_lb_vec
-            'ub',  Fl.th_ub_vec
+            'x0',  Fl.W.th0_vec
+            'lb',  Fl.W.th_lb_vec
+            'ub',  Fl.W.th_ub_vec
             'options', {}
             });
         'etc_', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.th0_vec
+            'x0',  Fl.W.th0_vec
             });
         });
 
@@ -148,30 +156,12 @@ properties
     VERSION
     VERSION_DESCRIPTION
 end
-properties (Dependent)
-    th
-    th0
-    th_lb
-    th_ub
-    th_fix
-    
-    th_vec
-    th0_vec
-    th_lb_vec
-    th_ub_vec
-    th_fix_vec
-    th_names
-    
-    th_vec_free
-    th0_vec_free
-    th_lb_vec_free
-    th_ub_vec_free
-    th_names_free
-end
 %% Main
 methods
     function Fl = FitFlow_grad_desc
+        
         Fl.add_deep_copy({'W0', 'W', 'Grid', 'History'}); % 'props', 
+        Fl.W = FitWorkspace;
 
         Fl.VERSION = 7;
         Fl.VERSION_DESCRIPTION = 'Simplified FitFlow6, utilizing FitParams, FitGrid (directly) and FitData (in FitWorkspace).';
@@ -182,6 +172,20 @@ methods
     function set_W0(Fl, W0)
         assert(isa(W0, 'FitWorkspace'));
         Fl.W0 = W0;
+    end
+    function set.W(Fl, W)
+        Fl.set_W(W);
+    end
+    function set_W(Fl, W)
+        Fl.W_ = W;
+%         Fl.set_Data(W.Data);
+%         Fl.add_children_props({'W'});
+    end
+    function W = get.W(Fl)
+        W = Fl.get_W;
+    end
+    function W = get_W(Fl)
+        W = Fl.W_;
     end
 end
 %% Fit
@@ -199,6 +203,7 @@ methods
             'args', {}
             'opts', {}
             'outs', {}
+            'solver', 'fmincon'
             });
 
         %% optim_fun
@@ -242,17 +247,18 @@ methods
             'b',        C_constr{2}
             'Aeq',      C_constr{3}
             'beq',      C_constr{4}
-            'lb',       Fl.th_lb_vec
-            'ub',       Fl.th_ub_vec
+            'lb',       Fl.W.th_lb_vec
+            'ub',       Fl.W.th_ub_vec
             'nonlcon',  C_constr{5}
             }, S.args);
 
         % Include in arguments only if nonempty
-        if isfield(S.args, 'options')
-            if isempty(S.args.options), S.args.options = {}; end
-            S.args.options = varargin2S(S.opts, S.args.options);
+        if isfield(S.args, 'options') && ~isempty(S.args.options)
+            C = varargin2C(S.opts, S.args.options);
+            S.args.options = optimoptions(S.solver, C{:});
         elseif ~isempty(S.opts)
-            S.args.options = S.opts;
+            C = varargin2C(S.opts);
+            S.args.options = optimoptions(S.solver, C{:});
         end
 
         %% Prepare output
@@ -322,16 +328,17 @@ methods
 
         % th
         n_th = length(res.out.x);
-        res.th = Fl.th;
+        res.th = Fl.W.th;
 
-        res = copyFields(res, Fl, {'th0', 'th_lb', 'th_ub', 'th_fix', 'th_names'});
-        res.arg.th0 = Fl.th0;
+        res = copyFields(res, Fl.W, ...
+            {'th0', 'th_lb', 'th_ub', 'th_fix', 'th_names'});
+        res.arg.th0 = Fl.W.th0;
         Fl.res = res;
 
         % se
         cov_free = Fl.get_cov_free;
         
-        th_free_vec = ~Fl.th_fix_vec;
+        th_free_vec = ~Fl.W.th_fix_vec;
         res.out.se = zeros(1, n_th);
         res.out.se(th_free_vec) = ...
             sqrt(hVec(diag(cov_free)));
@@ -356,7 +363,7 @@ methods
             hessian = Fl.res.out.hessian; 
         end
         
-        th_free_vec = ~Fl.th_fix_vec;
+        th_free_vec = ~Fl.W.th_fix_vec;
         cov_free = inv(hessian(th_free_vec, th_free_vec));
     end
     function res_out = calc_ic(Fl, res)
@@ -370,7 +377,7 @@ methods
         NLL = res.fval;
 
         % Count the number of fixed parameters and subtract from k
-        n_fixed = nnz(Fl.th_fix_vec);
+        n_fixed = nnz(Fl.W.th_fix_vec);
         k = k - n_fixed;
         res.k = k;
         res.n_fixed = n_fixed;
@@ -415,7 +422,7 @@ methods
 
         Fl.W.init_bef_fit;
     end
-    function c = get_cost(Fl, th_vec)
+    function varargout = get_cost(Fl, th_vec)
         if nargin >= 2
             Fl.W.set_vec_recursive(th_vec);
         end
@@ -430,11 +437,17 @@ methods
         % to avoid duplication of code.
         % % Fl.W.Params2W_recursive;
 
-        c = Fl.W.get_cost;
-        Fl.cost = c;
+        [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        Fl.cost = varargout{1};
+        if nargout >= 2
+            Fl.grad = varargout{2};
+        end
+        if nargout >= 3
+            Fl.hess = varargout{3};
+        end
 
     %     % DEBUG
-    %     disp(Fl.th);
+    %     disp(Fl.W.th);
     %     disp(c);
 
         % DEBUG
@@ -456,13 +469,15 @@ methods
     end
     function c = iterate(Fl, th_vec)
         % Calculate the cost, plot and print outputs without using the optimizer.
-        if nargin < 2, th_vec = Fl.th_vec; end
-        c = Fl.get_cost(th_vec); % (~Fl.th_fix_vec));
+        if nargin < 2, th_vec = Fl.W.th_vec; end
+        c = Fl.get_cost(th_vec); % (~Fl.W.th_fix_vec));
         Fl.runPlotFcns;
         Fl.runOutputFcns;
     end
     function f = get_cost_fun(Fl)
-        f = @(th_vec) Fl.get_cost(th_vec);
+%         n_argout = 1 + Fl.specify_grad + Fl.specify_hess;
+        
+        f = @(th_vec) output(@() Fl.get_cost(th_vec), 1:nargout);
     end
     function W = res2W(Fl)
     %     Fl.init_bef_fit; % (Fl.W); % CAUTION: Commented out because seems to be a bug.
@@ -661,7 +676,7 @@ methods
         if nargin >= 2 && ~isempty(x)
             th_vec_ = x;
         else
-            th_vec_ = Fl.th_vec;
+            th_vec_ = Fl.W.th_vec;
         end
 
         if nargin >= 3 && ~isempty(optimValues)
@@ -680,7 +695,9 @@ methods
 
         stop = false;
         h = ghandles(1,n);
+        
         for ii = 1:n
+%             tic;
             h(ii) = subplot(nR, nC, ii);
             if S.cla, cla; end
 
@@ -688,18 +705,33 @@ methods
                 curr_fun = S.fun{ii}(Fl);
                 stop = stop || curr_fun(th_vec_, S.optimValues, S.state);
             catch err
-                if S.catchError
-                    warning(err_msg(err));
+                if abs(nargin(S.fun{ii})) >= 4
+                    curr_fun = S.fun{ii};
+                    try
+                        stop = stop || curr_fun(Fl, th_vec_, S.optimValues, S.state);
+                    catch err
+                        if S.catchError
+                            warning(err_msg(err));
+                        else
+                            rethrow(err);
+                        end
+                    end
                 else
-                    rethrow(err);
+                    if S.catchError
+                        warning(err_msg(err));
+                    else
+                        rethrow(err);
+                    end
                 end
             end
+%             disp(curr_fun);
+%             toc;
         end
     end
     function stop = runOutputFcns(Fl)
         f = Fl.get_outputfun;
 
-        th_vec = Fl.th_vec(~Fl.th_fix_vec);
+        th_vec = Fl.W.th_vec(~Fl.W.th_fix_vec);
 
         optimValues = varargin2S({}, {
             'funcCount', Fl.History.n_iter * length(th_vec)
@@ -750,8 +782,14 @@ methods
             f = cell(size(Fl.PlotFcns));
 
             for ii = 1:length(f)
-                fun = Fl.PlotFcns{ii}(Fl);
-                f{ii} = @(x,v,s) fun(Fl.W.fill_vec_recursive(x), v, s);
+                fun1 = Fl.PlotFcns{ii};
+                if nargin(fun1) == 1 % old style: @(Fl) @(x,v,s)
+                    fun = Fl.PlotFcns{ii}(Fl);
+                    f{ii} = @(x,v,s) fun(Fl.W.fill_vec_recursive(x), v, s);
+                else % new style: @(Fl, x, v, s)
+                    fun = Fl.PlotFcns{ii};
+                    f{ii} = @(x,v,s) fun(Fl, Fl.W.fill_vec_recursive(x), v, s);
+                end
             end
         end
 
@@ -766,7 +804,7 @@ methods
 
             if mod(v.iteration, Fl.plot_opt.per_iter) == 0
                 if Fl.plot_opt.calc_before_plotting
-                    Fl.th_vec = x;
+                    Fl.W.th_vec = x;
                     Fl.run_iter;
                     assert(Fl.cost == v.fval, 'Discrepancy in cost!');
                 end
@@ -778,15 +816,34 @@ methods
     end
     function stop = optimplotx(Fl, x, optimValues, state, varargin)
         S = varargin2S(varargin, {
-            'ix', ':';
+            'ix', ':'
+            'exclude_nonscalar', true
+            'src', 'x' % 'x'|'grad'
             });
         
         stop = false;
 
-        lb = Fl.th_lb_vec_free;
-        ub = Fl.th_ub_vec_free;
-        names = Fl.th_names_free;
-        x = x(~Fl.th_fix_vec);
+        assert(S.exclude_nonscalar, ...
+            'Plotting nonscalar params is not supported yet!');
+        
+        switch S.src
+            case 'x'
+                names = Fl.W.th_names_scalar;
+                x = x(Fl.W.th_is_scalar_full);
+                
+                lb = Fl.W.th_lb_vec_scalar;
+                ub = Fl.W.th_ub_vec_scalar;
+            case 'grad'
+                names = Fl.W.th_names_scalar;
+                x = Fl.W.th_grad_vec;
+                x = x(Fl.W.th_is_scalar_full);
+                
+                lb = Fl.W.th_lb_vec_scalar;
+                ub = Fl.W.th_ub_vec_scalar;
+                
+                scale = ub - lb;
+                x = x ./ scale;
+        end
         
         % Plot a subset if requested
         lb = lb(S.ix);
@@ -795,7 +852,122 @@ methods
         x = x(S.ix);
         
         % Shorten names to save space
-        names = strrep_cell(names, {
+        names = Fl.shorten_th_name(names);
+        
+        % Show normalized plot
+        n = length(names);
+        x_plot = (x - lb) ./ (ub - lb);
+        
+        h_bar = findobj(gca, 'Type', 'Bar');
+        if isvalidhandle(h_bar)
+            set(h_bar, 'XData', 1:n, 'YData', x_plot, 'LineStyle', 'none');
+        else
+            h_bar = barh(x_plot);
+            set(h_bar, 'FaceColor', 'c', 'LineStyle', 'none');
+        end
+        hold on;
+
+        switch S.src
+            case 'x'
+                xlim([0 1]);
+            case 'grad'
+                % Don't impose xlim.
+                title('dCost/dParam');
+        end
+        ylim([0 n+1]);
+        
+        labels = cell(n,2);
+        
+%         x_lim = xlim;
+%         x_pos  = [0.05, 0.95] .* diff(x_lim) + x_lim(1);
+        x_pos  = [0.05, 0.95];
+        h_align = {'left', 'right'};
+
+        for ii = 1:n
+            labels{ii,1} = sprintf('%s: %1.3g  (%1.2g - %1.2g)', ...
+                names{ii}, x(ii), lb(ii), ub(ii));
+            labels{ii,2} = sprintf('');        
+        end
+
+%         delete(findobj(gca, 'Type', 'Text'));
+        for ii = 1:n
+            for jj = 1
+                text_update(x_pos(jj), ii, labels{ii, jj}, ...
+                    'HorizontalAlignment', h_align{jj});
+            end
+        end
+        hold off;
+
+        set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
+        
+        bml.plot.beautify;
+    end    
+    function stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
+        % stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
+        S = varargin2S(varargin, {
+            'src', 'x' % 'x'|'grad'
+            });
+        
+        stop = false;
+        
+        incl = Fl.W.is_in_th(name);
+        lb = min(Fl.W.th_lb_vec(incl));
+        ub = max(Fl.W.th_ub_vec(incl));
+        
+        switch S.src
+            case 'x'
+                x = x(incl);
+            case 'grad'
+                x = Fl.W.th_grad_vec(incl);
+                scale = ub - lb;
+                x = x ./ scale;
+        end
+        name_short = Fl.shorten_th_name(name);
+        
+        is_fixed = Fl.W.th_fix_vec(incl);
+        n = nnz(incl);
+        
+        for ii = {
+                0, 'c'
+                1, [0 0 0] + 0.7
+                }'
+            
+            [fixed1, color] = deal(ii{:});
+                
+            incl1 = find(is_fixed == fixed1);
+        
+            h_bar = barh(incl1, x(incl1));
+            set(h_bar, 'FaceColor', color, 'LineStyle', 'none');
+            
+            hold on;
+        end
+        hold off;
+        
+%         ytick_label = repmat({''}, [1, n]);
+%         ytick_label{1} = '1';
+%         ytick_label{n} = sprintf('%d', n);
+        set(gca, 'YTick', 1:n, 'YTickLabel', []); % ytick_label);
+        
+        ylim([0, (n+1)]);
+        if lb >= ub
+            lb = (lb + ub) / 2 - eps;
+            ub = (lb + ub) / 2 + eps;
+        end
+        switch S.src
+            case 'x'
+                xlim([lb, ub]);
+                title(sprintf('%s (%d)', name_short, n));
+            case 'grad'
+                % Don't impose xlim
+                title(sprintf('dCost/d%s (%d)', name_short, n));
+        end
+        set(gca, 'YDir', 'reverse');
+        
+        bml.plot.beautify;
+    end
+    function name = shorten_th_name(~, name)
+        name = strrep_cell(name, {
+            'W__', ''
             '__', '-'
             '_', '-'
             'a', ''
@@ -806,43 +978,7 @@ methods
             'Dtb-', ''
             'Sq', ''
             }, [], 'wholeStringOnly', false);
-
-        % Show normalized plot
-        n = length(names);
-        x_plot = (x - lb) ./ (ub - lb);
-        h_bar = findobj(gca, 'Type', 'Bar');
-        if isvalidhandle(h_bar)
-            set(h_bar, 'XData', 1:n, 'YData', x_plot, 'LineStyle', 'none');
-        else
-            h_bar = barh(x_plot);
-            set(h_bar, 'FaceColor', 'c', 'LineStyle', 'none');
-        end
-        hold on;
-
-        labels = cell(n,2);
-        x_pos  = [0.05, 0.95];
-        h_align = {'left', 'right'};
-
-        for ii = 1:n
-            labels{ii,1} = sprintf('%s: %1.3g  (%1.2g - %1.2g)', ...
-                names{ii}, x(ii), lb(ii), ub(ii));
-            labels{ii,2} = sprintf('');        
-        end
-
-        for ii = 1:n
-            for jj = 1
-%             for jj = 1:2
-                text_update(x_pos(jj), ii, labels{ii, jj}, ...
-                    'HorizontalAlignment', h_align{jj});
-            end
-        end
-
-        set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
-%         set(gca, 'YTick', 1:n, 'YTickLabel', names, 'YDir', 'reverse');
-        xlim([0 1]);
-        ylim([0 n+1]);
-        bml.plot.beautify;
-    end    
+    end
     function stop = optimplotfval(Fl, x, optimValues, state)
         stop = false;
 
@@ -868,102 +1004,42 @@ end
 % end
 %% Parameters - struct
 methods
-    function v = get.th(Fl)
-        v = Fl.W.get_struct_recursive('th');
-    end
-    function v = get.th0(Fl)
-        v = Fl.W.get_struct_recursive('th0');
-    end
-    function v = get.th_lb(Fl)
-        v = Fl.W.get_struct_recursive('lb');
-    end
-    function v = get.th_ub(Fl)
-        v = Fl.W.get_struct_recursive('ub');
-    end
+%     function v = get.th(Fl)
+%         v = Fl.W.get_struct_recursive('th');
+%     end
+%     function v = get.th0(Fl)
+%         v = Fl.W.get_struct_recursive('th0');
+%     end
+%     function v = get.th_lb(Fl)
+%         v = Fl.W.get_struct_recursive('lb');
+%     end
+%     function v = get.th_ub(Fl)
+%         v = Fl.W.get_struct_recursive('ub');
+%     end
+% 
+%     function set.th(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'th');
+%     end
+%     function set.th0(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'th0');
+%     end
+%     function set.th_lb(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'lb');
+%     end
+%     function set.th_ub(Fl, v)
+%         Fl.W.set_struct_recursive(v, 'ub');
+%     end
 
-    function set.th(Fl, v)
-        Fl.W.set_struct_recursive(v, 'th');
-    end
-    function set.th0(Fl, v)
-        Fl.W.set_struct_recursive(v, 'th0');
-    end
-    function set.th_lb(Fl, v)
-        Fl.W.set_struct_recursive(v, 'lb');
-    end
-    function set.th_ub(Fl, v)
-        Fl.W.set_struct_recursive(v, 'ub');
-    end
-
-    function v = get.th_names(Fl)
-        v = fieldnames(Fl.W.get_struct_recursive('th'))';
-    end
-end
-%% Parameters - vector
-methods
-    function v = get.th_vec(Fl)
-        v = Fl.W.get_vec_recursive('th');
-    end
-    function v = get.th0_vec(Fl)
-        v = Fl.W.get_vec_recursive('th0');
-    end
-    function v = get.th_lb_vec(Fl)
-        v = Fl.W.get_vec_recursive('lb');
-    end
-    function v = get.th_ub_vec(Fl)
-        v = Fl.W.get_vec_recursive('ub');
-    end
-
-    function set.th_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'th');
-    end
-    function set.th0_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'th0');
-    end
-    function set.th_lb_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'lb');
-    end
-    function set.th_ub_vec(Fl, v)
-        Fl.W.set_vec_recursive(v, 'ub');
-    end
-end
-%% Parameters - free
-methods
-    function v = get.th_vec_free(Fl)
-        v = Fl.th_vec(~Fl.th_fix_vec);
-    end
-    function v = get.th0_vec_free(Fl)
-        v = Fl.th0_vec(~Fl.th_fix_vec);
-    end
-    function v = get.th_lb_vec_free(Fl)
-        v = Fl.th_lb_vec(~Fl.th_fix_vec);
-    end
-    function v = get.th_ub_vec_free(Fl)
-        v = Fl.th_ub_vec(~Fl.th_fix_vec);
-    end
-
-    function set.th_vec_free(Fl, v)
-        Fl.th_vec(~Fl.th_fix_vec) = v;
-    end
-    function set.th0_vec_free(Fl, v)
-        Fl.th0_vec(~Fl.th_fix_vec) = v;
-    end
-    function set.th_lb_vec_free(Fl, v)
-        Fl.th_lb_vec(~Fl.th_fix_vec) = v;
-    end
-    function set.th_ub_vec_free(Fl, v)
-        Fl.th_ub_vec(~Fl.th_fix_vec) = v;
-    end
-
-    function v = get.th_names_free(Fl)
-        v = Fl.th_names(~Fl.th_fix_vec);
-    end
+%     function v = get.th_names(Fl)
+%         v = fieldnames(Fl.W.get_struct_recursive('th'))';
+%     end
 end
 %% Parameters - typical scale
 methods
     function v = get_th_typical_scale(Fl)
-        th0 = Fl.th0_vec;
-        th_ub = Fl.th_ub_vec;
-        th_lb = Fl.th_lb_vec;
+        th0 = Fl.W.th0_vec;
+        th_ub = Fl.W.th_ub_vec;
+        th_lb = Fl.W.th_lb_vec;
 
         pos_only = th_lb >= 0;
         neg_only = th_ub <= 0;
@@ -979,7 +1055,7 @@ methods
     end
     function v = get_th_typical_scale_free(Fl)
         v = Fl.get_th_typical_scale;
-        v = v(~Fl.th_fix_vec);
+        v = v(~Fl.W.th_fix_vec);
     end
 
     function imagesc_corrcoef_free(Fl)
@@ -998,48 +1074,18 @@ methods
         n_free = size(corrcoefmat, 1);
         set(gca, ...
             'XTick', 1:n_free, ...
-            'XTickLabel', Fl.th_names_free, ...
+            'XTickLabel', Fl.W.th_names_free, ...
             'XTickLabelRotation', 90, ...
             'YTick', 1:n_free, ...
-            'YTickLabel', Fl.th_names_free);
+            'YTickLabel', Fl.W.th_names_free);
     end
     function corrcoefmat = get_corrcoef_free(Fl)
         covmat = inv(Fl.res.out.hessian);
         sevec = sqrt(diag(covmat));
         corrcoefmat = covmat ./ bsxfun(@times, sevec(:), sevec(:)');
 
-        th_free_vec = ~Fl.th_fix_vec;
+        th_free_vec = ~Fl.W.th_fix_vec;
         corrcoefmat = corrcoefmat(th_free_vec, th_free_vec);
-    end
-end
-%% Parameteres - fixed
-methods
-    function S = get.th_fix(Fl)
-        v = num2cell(Fl.th_fix_vec);
-        names = Fl.th_names;
-        S = cell2struct(v(:), names);
-    end
-    function v = get.th_fix_vec(Fl)
-        v = Fl.W.get_vec_recursive('lb') == Fl.W.get_vec_recursive('ub');
-    end
-    function set.th_fix(Fl, S)
-        C = struct2cell(S);
-        Fl.th_fix_vec = logical([C{:}]);
-    end
-    function set.th_fix_vec(Fl, v)
-        assert(all((v(:) == 0) | (v(:) == 1)));
-        v = logical(v);
-
-        th0 = Fl.W.get_vec_recursive('th0');
-        lb = Fl.W.get_vec_recursive('lb');
-        ub = Fl.W.get_vec_recursive('ub');
-        th = Fl.W.get_vec_recursive('th');
-        lb(v) = th0(v);
-        ub(v) = th0(v);
-        th(v) = th0(v);
-        Fl.W.set_vec_recursive(lb, 'lb');
-        Fl.W.set_vec_recursive(ub, 'ub');
-        Fl.W.set_vec_recursive(th, 'th');
     end
 end
 %% Static methods

@@ -6,7 +6,7 @@ properties
     pred_fun = @(W) nan; % Simple predictions. Called from W.pred.
     cost_fun = @(W) nan; % For simple costs. Called from W.calc_cost.
     grad_fun = @(W) nan(1, length(W.get_vec));
-    hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
+    hess_fun = [];
 end
 %% Internal variables
 properties (Dependent)
@@ -16,9 +16,14 @@ properties (Access=private)
     % Cannot access without invoking set_Data and get_Data.
     Data_
 end
+properties (Transient)
+    Fl
+end
 %% Methods
 methods
 function W = FitWorkspace
+    W.hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
+    
     W.add_deep_copy({'Data_'});
 end
 function [Fl, res] = fit(W, varargin)
@@ -35,23 +40,103 @@ function [Fl, res] = fit_grid(W, varargin)
     Fl = W.get_Fl;
     res = Fl.fit_grid(varargin{:});
 end
-function Fl = get_Fl(W, new_Fl_instance)
+function Fl = get_Fl(W, new_Fl_instance, varargin)
+    S = varargin2S(varargin, {
+        'add_plotfun', true
+        });
+    
+    if ~isempty(W.Fl)
+        Fl = W.Fl;
+        return;
+    end
     if nargin >= 2
         Fl = new_Fl_instance;
     else
         Fl = FitFlow;
     end
     Fl.set_W0(W); % .deep_copy);
-    try
-        Fl.W0.init_W0;
-        Fl.init_bef_fit;
-    catch err
-        warning(err_msg(err));
+    Fl.set_W(W);
+%     try
+%         Fl.W0.init_W0;
+%         Fl.init_bef_fit;
+%     catch err
+%         warning(err_msg(err));
+%     end
+    
+    if S.add_plotfun
+        W.add_plotfun(Fl);
+    end
+end
+function add_plotfun(W, Fl, varargin)
+    W.add_plotfun_optimplotfval(Fl, varargin{:});
+    W.add_plotfun_optimplotx(Fl, varargin{:});
+end
+function add_plotfun_optimplotfval(W, Fl)
+    Fl.add_plotfun({
+        @optimplotfval
+        });
+end
+function add_plotfun_optimplotgrad(W, Fl, varargin)
+    C = varargin2C({
+        'src', 'grad'
+        }, varargin);
+    W.add_plotfun_optimplotx(Fl, C{:});
+end
+function add_plotfun_optimplotx(W, Fl, varargin)
+    S = varargin2S(varargin, {
+        'param_per_optimplotx', 5
+        'src', 'x'
+        });
+    
+    if nargin < 2 || isempty(Fl)
+        Fl = W.get_Fl;
+    end
+    
+    names_scalar = Fl.W.th_names_scalar;
+    n = numel(names_scalar);
+    for ii = 1:ceil(n / S.param_per_optimplotx)
+        st = (ii - 1) * S.param_per_optimplotx + 1;
+        en = min(st - 1 + S.param_per_optimplotx, n);
+        
+        switch S.src
+            case 'x'
+                Fl.add_plotfun({
+                    str2func(sprintf( ...
+                        '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d)', ...
+                            st, en))
+                    });
+            case 'grad'
+                Fl.add_plotfun({
+                    str2func(sprintf( ...
+                        '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d,''src'',''grad'')', ...
+                            st, en))
+                    });
+        end
+    end
+    
+    names_nonscalar = Fl.W.th_names_nonscalar;
+    if ~isempty(names_nonscalar)
+        for name = names_nonscalar(:)'
+            switch S.src
+                case 'x'
+                    Fl.add_plotfun({
+                        str2func(sprintf( ...
+                            '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s)', ...
+                            name{1}))
+                        });
+                case 'grad'
+                    Fl.add_plotfun({
+                        str2func(sprintf( ...
+                            '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s,''src'',''grad'')', ...
+                            name{1}))
+                        });
+            end
+        end
     end
 end
 function [Fl, c] = test_Fl(W)
     Fl = W.get_Fl;
-    c = Fl.get_cost(Fl.th_vec);
+    c = Fl.get_cost(Fl.W.th_vec);
     disp(c);
 end
 end
@@ -121,10 +206,18 @@ end
 %% Data - etc
 methods
     function n = get_n_tr(W)
-        n = W.Data.get_n_tr;
+        if isa(W.Data, 'FitData')
+            n = W.Data.get_n_tr;
+        else
+            n = nan;
+        end
     end
     function n = get_n_tr0(W)
-        n = W.Data.get_n_tr0;
+        if isa(W.Data, 'FitData')
+            n = W.Data.get_n_tr0;
+        else
+            n = nan;
+        end
     end    
 end
 %% Params and other fields - obsolete. Use VisitorToTree methods.
@@ -294,15 +387,30 @@ methods
         W = feval(class(W0));
         W.add_params({
             {'vec', 1:5, zeros(1,5), 10 + zeros(1,5)}
+            {'vec_mixed', 1:5, [0 0 3 4 5], [10 10 3 4 5]}
+            {'vec_fixed', 1:5, 1:5, 1:5}
+            {'scalar1', 2, 0, 10}
+            {'scalar_fixed', 3, 3, 3}
+            {'scalar2', 5, 3, 6}
             });
+        disp(W);
         
         %%
-        W.cost_fun = @(W) sum((W.th.vec - (2:6)).^2);
+        Fl = W.get_Fl;
+        disp(Fl);
+        
+        %%
+        W.cost_fun = @(W) ...
+              sum((W.th.vec - (6:-1:2)).^4) ...
+            + sum((W.th.vec_mixed(1:2) - [2 8]).^2) ...
+            + (W.th.scalar1 - 8) .^ 2 ...
+            + (W.th.scalar2 - 8) .^ 2;
         disp(W.get_cost);
         
         %%
-        W.fit;
-        disp(W.th.vec);
+        Fl = W.get_Fl;
+        Fl.fit;
+        disp(Fl.res.th.vec);
     end
 end
 end
