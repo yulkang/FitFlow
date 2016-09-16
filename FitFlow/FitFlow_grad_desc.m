@@ -466,9 +466,7 @@ methods
     end
     function W = res2W(Fl)
     %     Fl.init_bef_fit; % (Fl.W); % CAUTION: Commented out because seems to be a bug.
-        if isa(Fl.W.Data, 'FitData')
-            Fl.W.Data.load_data;
-        end
+        Fl.W.Data.load_data;
         Fl.get_cost(Fl.res.out.x);
         if nargout >= 2, W = Fl.W; end
     end
@@ -727,8 +725,7 @@ methods
             stop = stop || Fl.History.iterate(x, optimValues, state);
 
             for ii = 1:length(cOutputFcns)
-                fun = cOutputFcns{ii}(Fl);
-                stop = stop || fun(x, optimValues, state);
+                stop = stop || cOutputFcns{ii}(x, optimValues, state);
             end
         end
     end
@@ -776,39 +773,16 @@ methods
             end
         end
     end
-    function stop = optimplotx(Fl, x, optimValues, state, varargin)
-        S = varargin2S(varargin, {
-            'ix', ':';
-            });
-        
+    function stop = optimplotx(Fl, x, optimValues, state)
         stop = false;
 
         lb = Fl.th_lb_vec_free;
         ub = Fl.th_ub_vec_free;
         names = Fl.th_names_free;
-        x = x(~Fl.th_fix_vec);
-        
-        % Plot a subset if requested
-        lb = lb(S.ix);
-        ub = ub(S.ix);
-        names = names(S.ix);
-        x = x(S.ix);
-        
-        % Shorten names to save space
-        names = strrep_cell(names, {
-            '__', '-'
-            '_', '-'
-            'a', ''
-            'e', ''
-            'i', ''
-            'o', ''
-            'u', ''
-            'Dtb-', ''
-            'Sq', ''
-            }, [], 'wholeStringOnly', false);
+        n = length(names);
 
         % Show normalized plot
-        n = length(names);
+        x = x(~Fl.th_fix_vec);
         x_plot = (x - lb) ./ (ub - lb);
         h_bar = findobj(gca, 'Type', 'Bar');
         if isvalidhandle(h_bar)
@@ -824,24 +798,29 @@ methods
         h_align = {'left', 'right'};
 
         for ii = 1:n
-            labels{ii,1} = sprintf('%s: %1.3g  (%1.2g - %1.2g)', ...
-                names{ii}, x(ii), lb(ii), ub(ii));
+    %         labels{ii,1} = sprintf('%1.3g', x(ii));
+    %         labels{ii,2} = sprintf('(%1.2g - %1.2g)', lb(ii), ub(ii));        
+            labels{ii,1} = sprintf('%1.3g  (%1.2g - %1.2g)', ...
+                x(ii), lb(ii), ub(ii));
             labels{ii,2} = sprintf('');        
         end
 
         for ii = 1:n
-            for jj = 1
-%             for jj = 1:2
+            for jj = 1:2
                 text_update(x_pos(jj), ii, labels{ii, jj}, ...
                     'HorizontalAlignment', h_align{jj});
             end
         end
 
-        set(gca, 'YTick', 1:n, 'YTickLabel', [], 'YDir', 'reverse');
-%         set(gca, 'YTick', 1:n, 'YTickLabel', names, 'YDir', 'reverse');
+        % To save space
+        names = strrep_cell(names, {
+            '__', '-'
+            '_', '-'
+            }, [], 'wholeStringOnly', false);
+
+        set(gca, 'YTick', 1:n, 'YTickLabel', names, 'YDir', 'reverse');
         xlim([0 1]);
         ylim([0 n+1]);
-        bml.plot.beautify;
     end    
     function stop = optimplotfval(Fl, x, optimValues, state)
         stop = false;

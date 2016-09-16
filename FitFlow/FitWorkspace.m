@@ -1,14 +1,6 @@
 classdef FitWorkspace < FitParamsForcibleSoft & PartialSaveTree & LinkProps % & matlab.unittest.TestCase
 % 2013-2015 (c) Yul Kang.  yul dot kang dot on at gmail dot com.
 
-%% Settings: prediction and costs
-properties
-    pred_fun = @(W) nan; % Simple predictions. Called from W.pred.
-    cost_fun = @(W) nan; % For simple costs. Called from W.calc_cost.
-    grad_fun = @(W) nan(1, length(W.get_vec));
-    hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
-end
-%% Internal variables
 properties (Dependent)
     Data
 end
@@ -16,7 +8,6 @@ properties (Access=private)
     % Cannot access without invoking set_Data and get_Data.
     Data_
 end
-%% Methods
 methods
 function W = FitWorkspace
     W.add_deep_copy({'Data_'});
@@ -35,12 +26,8 @@ function [Fl, res] = fit_grid(W, varargin)
     Fl = W.get_Fl;
     res = Fl.fit_grid(varargin{:});
 end
-function Fl = get_Fl(W, new_Fl_instance)
-    if nargin >= 2
-        Fl = new_Fl_instance;
-    else
-        Fl = FitFlow;
-    end
+function Fl = get_Fl(W)
+    Fl = FitFlow;
     Fl.set_W0(W); % .deep_copy);
     try
         Fl.W0.init_W0;
@@ -249,11 +236,9 @@ function pred(W)
     % stored within W.
     %
     % %% Modify this in subclasses %%    
-    
-    W.pred_fun(W);
 end
-function [cost, grad, hess, cost_sep] = calc_cost(W)
-    % [cost, grad, hess] = calc_cost(W, varargin)
+function c = calc_cost(W)
+    % calc_cost(W, varargin)
     % Usually calculating cost is much faster than
     % prediction. 
     % Also, predicted state might be used in other classes
@@ -262,24 +247,10 @@ function [cost, grad, hess, cost_sep] = calc_cost(W)
     % pred from calc_cost.
     %
     % %% Modify this in subclasses %%    
-    if nargout >= 4
-        [cost, cost_sep] = W.cost_fun(W);
-    else
-        cost = W.cost_fun(W);
-    end
-    
-    if nargout >= 2
-        grad = W.grad_fun(W);
-    end
-    if nargout >= 3
-        hess = W.hess_fun(W);
-    end
+    c = nan;
 end
 function varargout = get_cost(W, varargin)
-    % [cost, grad, hess, cost_sep] = get_cost(W, varargin)
-    %
-    % cost, grad, hess: as in fmincon.
-    % cost_sep: element-wise cost.
+    % [c, cost_sep] = get_cost(W, varargin)
     %
     % Follows Hollywood Principle:
     % does not call FitFlow methods. FitFlow sets parameters if needed.
@@ -288,21 +259,8 @@ function varargout = get_cost(W, varargin)
     [varargout{1:nargout}] = W.calc_cost;
 end
 end
-methods
-    function W = test_nonscalar_param(W0)
-        %%
-        W = feval(class(W0));
-        W.add_params({
-            {'vec', 1:5, zeros(1,5), 10 + zeros(1,5)}
-            });
-        
-        %%
-        W.cost_fun = @(W) sum((W.th.vec - (2:6)).^2);
-        disp(W.get_cost);
-        
-        %%
-        W.fit;
-        disp(W.th.vec);
+methods (Static)
+    function W = test
     end
 end
 end
