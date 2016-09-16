@@ -309,9 +309,9 @@ function load_data(Dat, field_excluded, field_included)
         use_dataset = Dat.use_dataset;
     end
     
-%     if ~is_in_parallel
-%         fprintf('Loading %s ... ', pth);
-%     end
+    if ~is_in_parallel
+        fprintf('Loading %s ... ', pth);
+    end
     if use_dataset
         ds0 = load(pth, Dat.dataset_name);
         ds0 = ds0.(Dat.dataset_name);
