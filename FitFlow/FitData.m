@@ -42,6 +42,8 @@ end
 properties (Dependent)
     dat_filt
     dat2file % inverse mapping of file2dat
+    
+    is_loaded
 end
 properties (Dependent)
     ds
@@ -91,11 +93,11 @@ function set_filt_spec(Dat, filt_spec)
     % filt_ds is called automatically on get.ds
 end
 function filt = get.dat_filt(Dat)
-    % Always returns a logical vector.
+    % Always returns a numeric vector.
     filt = Dat.get_dat_filt;
 end
 function filt = get_dat_filt(Dat)
-    % Always returns a logical vector.
+    % Always returns a numeric vector.
     % called by get.dat_filt. Modifiable by subclasses.
     filt_spec = Dat.dat_filt_spec;
     
@@ -119,6 +121,9 @@ function filt = get_dat_filt(Dat)
 end
 function filt = unify_filt_class(Dat, filt)
     filt = Dat.convert_filt_to_numeric(filt);
+    
+    % logical index is less flexible
+    % (e.g., cannot sample with replacement.)
 %     filt = Dat.convert_filt_to_logical(filt);
 end
 function filt = get_dat_filt_logical(Dat)
@@ -352,7 +357,7 @@ function Dat = saveobj(Dat)
     end    
     Dat.loaded = false;
 end
-function save_data(Dat, field_excluded, field_included)
+function save_data(Dat, field_excluded, field_included, file_out)
     % save_data(Dat, field_excluded, field_included)
     % field_included overrides field_excluded if specified and nonempty.
     %
@@ -388,7 +393,18 @@ function save_data(Dat, field_excluded, field_included)
     end
     
     % Save
-    file_out = Dat.get_path;
+    if ~exist('file_out', 'var')
+        file_out = Dat.get_path;
+        [~,~,ext] = fileparts(file_out);
+        if ~isequal(ext, '.mat'), file_out = [file_out, '.mat']; end
+        if exist(file_out, 'file')
+            if ~inputYN_def( ...
+                    sprintf('%s exists already! Overwrite', file_out), ...
+                    false);
+                return;
+            end
+        end
+    end
     mkdir2(fileparts(file_out));
     save(file_out, '-struct', 'L');    
     
@@ -398,8 +414,11 @@ function save_data(Dat, field_excluded, field_included)
     fprintf(' %s', column_names{:});
     fprintf('\n');
 end
-function tf = is_loaded(Dat)
+function tf = get.is_loaded(Dat)
     tf = Dat.loaded && ~isempty(Dat.ds0_);
+end
+function set.is_loaded(Dat, tf)
+    Dat.loaded = tf;
 end
 %% dat2file
 function dat2file = get.dat2file(Dat)
