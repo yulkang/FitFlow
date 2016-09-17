@@ -54,6 +54,9 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
     else
         Fl = FitFlow;
     end
+    
+    W.Fl = Fl;
+    
     Fl.set_W0(W); % .deep_copy);
     Fl.set_W(W);
 %     try
@@ -62,7 +65,7 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
 %     catch err
 %         warning(err_msg(err));
 %     end
-    
+
     if S.add_plotfun
         W.add_plotfun(Fl);
     end
