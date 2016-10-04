@@ -68,6 +68,7 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
     end
 end
 function add_plotfun(W, Fl, varargin)
+    % Fl is required to prevent endless recursion with get_Fl.
     W.add_plotfun_optimplotfval(Fl, varargin{:});
     W.add_plotfun_optimplotx(Fl, varargin{:});
 end
