@@ -846,6 +846,9 @@ methods
         end
         
         % Plot a subset if requested
+        if ~isequal(S.ix, ':') && isnumeric(S.ix)
+            S.ix = S.ix(S.ix <= numel(x));
+        end
         lb = lb(S.ix);
         ub = ub(S.ix);
         names = names(S.ix);
