@@ -5,7 +5,7 @@ methods
             Fl.W.set_vec_recursive(th_vec);
         end
 
-        [c, varargout{1:(1-nargout)}] = Fl.W.get_cost;
+        [c, varargout{1:(nargout-1)}] = Fl.W.get_cost;
         Fl.cost = c;
     end
 end
