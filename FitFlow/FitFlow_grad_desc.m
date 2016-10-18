@@ -485,6 +485,8 @@ methods
             Fl.W.Data.load_data;
         end
         Fl.get_cost(Fl.res.out.x);
+        Fl.History.n_iter = size(Fl.res.history, 1);
+        Fl.History.history = Fl.res.history;
         if nargout >= 2, W = Fl.W; end
     end
 end
