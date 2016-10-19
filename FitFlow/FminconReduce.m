@@ -95,15 +95,22 @@ function varargout = postprocess_output(outs, to_fix)
         varargout{1} = outs{1};
     end
     if nargout >= 2 % gradient
-%         if numel(outs{2}) ~= nnz(~to_fix)
+        if numel(outs{2}) ~= nnz(~to_fix)
             varargout{2} = outs{2}(~to_fix);
-%         end
+        else
+            varargout{2} = outs{2};
+        end
     end
     if nargout >= 3 % hessian
-%         if size(outs{3},1) ~= nnz(~to_fix)
+        if size(outs{3},1) ~= nnz(~to_fix)
             varargout{3} = outs{3}(~to_fix, ~to_fix);
-%         end
+        else
+            varargout{3} = outs{3};
+        end
     end
+%     % DEBUG
+%     celldisp(outs);
+%     celldisp(varargout);
 end
 function v = fill_vec(x0, to_fix, x_vary)
     % v = fill_vec(x0, fixed, to_vary)
