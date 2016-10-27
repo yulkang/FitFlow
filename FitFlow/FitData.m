@@ -53,6 +53,9 @@ properties (Transient)
     ds_ = dataset;
     ds0_ = dataset;
 end
+properties
+    W % Retain a link to FitWorkspace
+end
 methods
 %% Construct
 function Dat = FitData(varargin)

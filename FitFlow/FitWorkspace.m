@@ -175,6 +175,7 @@ methods
         % only by using FitWorkspace.set_Data.
         src = W.get_Data_source;
         src.set_Data_(Dat);
+        Dat.W = src;
     end
     function set_root(W, new_root)
         % When the W itself becomes a root,
