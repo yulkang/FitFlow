@@ -54,7 +54,8 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
     else
         Fl = FitFlow;
     end
-    Fl.set_W0(W); % .deep_copy);
+    W.Fl = Fl;
+%     Fl.set_W0(W); % .deep_copy);
     Fl.set_W(W);
 %     try
 %         Fl.W0.init_W0;

@@ -11,8 +11,8 @@ properties (Dependent)
     W
 end
 properties
-    W0 = FitWorkspace; % FitWorkspace
-    W_ = []; % Set to W0 on fitting.
+%     W0 = FitWorkspace; % FitWorkspace
+    W_ = FitWorkspace; % Set to W0 on fitting.
     save_W = false; % Set to true to save final state. May waste space.
     
     res = struct;
@@ -160,7 +160,7 @@ end
 methods
     function Fl = FitFlow_grad_desc
         
-        Fl.add_deep_copy({'W0', 'W', 'Grid', 'History'}); % 'props', 
+        Fl.add_deep_copy({'W', 'Grid', 'History'}); % 'props',  'W0', 
         Fl.W = FitWorkspace;
 
         Fl.VERSION = 7;
@@ -169,10 +169,10 @@ methods
             Fl.id = randStr(7);
         end
     end
-    function set_W0(Fl, W0)
-        assert(isa(W0, 'FitWorkspace'));
-        Fl.W0 = W0;
-    end
+%     function set_W0(Fl, W0)
+%         assert(isa(W0, 'FitWorkspace'));
+%         Fl.W0 = W0;
+%     end
     function set.W(Fl, W)
         Fl.set_W(W);
     end
@@ -402,7 +402,7 @@ end
 %% Fitting process
 methods
     function init_bef_fit(Fl, Params)
-        Fl.W = Fl.W0; % Fl.W0.deep_copy; % Too much problems with deep copying..
+%         Fl.W = Fl.W0; % Fl.W0.deep_copy; % Too much problems with deep copying..
 
         if nargin >= 2 && ~isempty(Params)
             Fl.W.merge_flat(Params);
