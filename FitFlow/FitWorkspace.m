@@ -21,10 +21,21 @@ properties (Transient)
 end
 %% Methods
 methods
-function W = FitWorkspace
+function W = FitWorkspace(varargin)
     W.hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
-    
     W.add_deep_copy({'Data_'});
+    
+    if nargin > 0
+        W.init(varargin{:});
+    end
+end
+function init(W, varargin)
+    bml.oop.varargin2props(W, varargin, true);
+    
+    for child_name = fieldnames(W.children)'
+        child = W.children.(child_name{1});
+        child.init(varargin{:});
+    end
 end
 function [Fl, res] = fit(W, varargin)
     % [Fl, res] = fit(W, varargin)
