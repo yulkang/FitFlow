@@ -106,6 +106,7 @@ properties
             'TypicalX',  Fl.get_th_typical_scale_free % Should supply this because FminconReduce does not reduce it internally
             'FinDiffRelStep', 1e-3 % If too small, SE becomes funky
             'MaxFunEvals', 1e4
+            'UseParallel', 'always'
 %             'DiffMinChange', 1e-4
 %             'TolX', 1e-5
             });
