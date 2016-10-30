@@ -29,6 +29,7 @@ properties (Dependent) % For convenience
     th_lb_vec
     th_ub_vec
     th_fix_vec
+    th_names_fixed
     
     th_vec_free
     th0_vec_free
@@ -918,6 +919,21 @@ methods
     end
     function set.th_ub_vec_free(Params, v)
         Params.th_ub_vec(~Params.th_fix_vec) = v;
+    end
+    
+    function names = get.th_names_fixed(Params)
+        names0 = Params.th_names;
+        S = Params.th_fix;
+        n = numel(names0);
+        
+        incl = false(1, n);
+        for ii = 1:n
+            name = names0{ii};
+            if any(S.(name))
+                incl(ii) = true;
+            end
+        end
+        names = names0(incl);
     end
 
     function names = get.th_names_free(Params)

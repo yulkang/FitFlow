@@ -74,7 +74,7 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
 %     catch err
 %         warning(err_msg(err));
 %     end
-    
+
     if S.add_plotfun
         W.add_plotfun(Fl);
     end
