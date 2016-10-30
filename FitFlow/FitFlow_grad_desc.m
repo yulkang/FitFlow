@@ -367,6 +367,16 @@ methods
         th_free_vec = ~Fl.W.th_fix_vec;
         cov_free = inv(hessian(th_free_vec, th_free_vec));
     end
+    function cv = get_cov(Fl, hessian)
+        if ~exist('hessian', 'var'), 
+            hessian = Fl.res.out.hessian; 
+        end
+        
+        th_free_vec = ~Fl.W.th_fix_vec;
+        n_th = length(th_free_vec);
+        cv = nan(n_th, n_th);
+        cv(th_free_vec, th_free_vec) = Fl.get_cov_free(hessian);
+    end
     function res_out = calc_ic(Fl, res)
         if ~exist('res', 'var')
             res = Fl.res;
