@@ -431,14 +431,32 @@ methods
         is_free = ~Fl.W.th_fix_vec;
         est_free = Fl.res.out.x(is_free);
         
-        samp_free = mvnrnd(est_free, cov_free, n);
-        
+        all_met = false(n, 1);
         n_th = length(Fl.W.th_vec);
-        th_samp = zeros(n, n_th);
-        th_samp(:, is_free) = samp_free;
+
+        th_samp = nan(n, n_th);
         
         % Fill in fixed part
         th_samp(:, ~is_free) = repmat(hVec(Fl.W.th_vec(~is_free)), [n, 1]);
+        
+        n_loop_max = 100;
+        n_loop = 0;
+        
+        [A, b] = Fl.W.get_constr_linear_free;
+        
+        while ~all_met
+            n_to_sample = nnz(~all_met);
+            
+            th_samp(~all_met, is_free) = ...
+                rmvnrnd(est_free, cov_free, n_to_sample, A, b);
+            all_met(~all_met) = Fl.W.is_constr_met(th_samp);
+            n_loop = n_loop + 1;
+            
+            if n_loop > n_loop_max
+                warning('n_loop > n_loop_max = %d!', n_loop_max);
+                break;
+            end
+        end
         
         % Set to Fl.W.th_samp
         Fl.W.th_samp = th_samp;

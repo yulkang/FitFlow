@@ -345,9 +345,50 @@ methods
             x = Params.th_vec;
         end
         Constr = Params.Constr;
-        C = Constr.get_fmincon_cond(Constr.th_names_all);
-        [all_met, met, v] = Params.is_constr_met_static( ...
-            x, Params.th_lb_vec, Params.th_ub_vec, C{:});
+        C = Constr.get_fmincon_cond(Params.th_names);
+        
+        if size(x, 1) > 1
+            x_all = row2cell(x);
+            
+            [all_met, met, v] = cellfun(@(x) Params.is_constr_met_static( ...
+                x, Params.th_lb_vec, Params.th_ub_vec, C{:}), x_all);
+        else
+            [all_met, met, v] = Params.is_constr_met_static( ...
+                x, Params.th_lb_vec, Params.th_ub_vec, C{:});
+        end
+    end
+    function [A, b] = get_constr_linear(Params)
+        % Returns linear constraints A and b
+        % such that A * Params.th_vec(:) <= b,
+        % including lb, ub, Aeq, and beq.
+        
+        C = Params.Constr.get_fmincon_cond(Params.th_names);
+        A = C{1};
+        b = C{2};
+        Aeq = C{3};
+        beq = C{4};
+        
+        % Add Aeq, beq, to A and b.
+        if ~isempty(Aeq)
+            A = [A; Aeq; -Aeq];
+            b = [b; beq; -beq];
+        end
+        
+        % Add lb, ub to A and b.
+        n_th = length(Params.th_vec);
+        lb = Params.th_lb_vec(:);
+        ub = Params.th_ub_vec(:);
+        
+        A = [A; eye(n_th); -eye(n_th)];
+        b = [b; ub; -lb];
+    end
+    function [A, b] = get_constr_linear_free(Params)
+        [A0, b0] = Params.get_constr_linear;
+        is_free = ~Params.th_fix_vec;
+        A = A0(:, is_free);
+        all0 = all(A == 0, 2);
+        A = A(~all0, :);
+        b = b0(~all0);
     end
 end
 methods (Static)
