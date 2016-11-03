@@ -60,6 +60,9 @@ properties (Dependent) % For convenience
     th_grad_vec
     th_grad_free
     th_grad_vec_free
+    
+    % Samples
+    th_samp % (samp, th)
 end
 %% Methods
 methods
@@ -150,6 +153,13 @@ function v = get.th_grad_vec_free(Params)
 end
 function set.th_grad_vec_free(Params, v)
     Params.th_grad_vec(~Params.th_fix_vec) = v;
+end
+%% Samples
+function set.th_samp(Params, v)
+    Params.set_mat_recursive(v, 'th_samp');
+end
+function v = get.th_samp(Params)
+    v = Params.get_mat_recursive(v, 'th_samp');
 end
 %% Parameters
 function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
@@ -404,6 +414,40 @@ function n_el_set = set_vec_recursive(Params, v, prop)
 %         c_n_el_set = Params.sub.(sub{1}).set_vec_recursive(v((n_el_set+1):end), prop);
 %         n_el_set   = n_el_set + c_n_el_set;
 %     end
+end
+
+function v = get_mat(Params, prop)
+    if nargin < 2, prop = 'th_samp'; end
+    v = cellfun(@(v) v(:), struct2cell(Params.get_struct(prop)), ...
+        'UniformOutput', false);
+    v = cell2mat(v(:)');
+end
+function numels = set_mat(Params, v, prop)
+    if nargin < 3, prop = 'th_samp'; end
+    if isempty(v)
+        numels = [];
+    else
+        [~,numels] = Params.Param.set_mat(v, prop);
+    end
+end
+function v = get_mat_recursive(Params, prop)
+    if nargin < 2, prop = 'th_samp'; end
+    v = Params.get_mat(prop);
+    
+    for sub = Params.get_children
+        v2 = sub{1}.get_mat_recursive(prop);
+        v = [v, v2]; %#ok<AGROW>
+    end
+end
+function n_el_set = set_mat_recursive(Params, v, prop)
+    if nargin < 3, prop = 'th_samp'; end
+    numels = Params.set_mat(v, prop);
+    n_el_set = sum(numels);
+    
+    for sub = Params.get_children
+        c_n_el_set = sub{1}.set_vec_recursive(v(:,(n_el_set+1):end), prop);
+        n_el_set   = n_el_set + c_n_el_set;
+    end
 end
 function v = get_vec_fix_recursive(Params)
     th_lb = Params.get_vec_recursive('th_lb');
