@@ -159,7 +159,7 @@ function set.th_samp(Params, v)
     Params.set_mat_recursive(v, 'th_samp');
 end
 function v = get.th_samp(Params)
-    v = Params.get_mat_recursive(v, 'th_samp');
+    v = Params.get_mat_recursive('th_samp');
 end
 %% Parameters
 function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
@@ -445,7 +445,7 @@ function n_el_set = set_mat_recursive(Params, v, prop)
     n_el_set = sum(numels);
     
     for sub = Params.get_children
-        c_n_el_set = sub{1}.set_vec_recursive(v(:,(n_el_set+1):end), prop);
+        c_n_el_set = sub{1}.set_mat_recursive(v(:,(n_el_set+1):end), prop);
         n_el_set   = n_el_set + c_n_el_set;
     end
 end
