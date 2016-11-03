@@ -547,10 +547,23 @@ methods
         if isa(Fl.W.Data, 'FitData')
             Fl.W.Data.load_data;
         end
-        Fl.get_cost(Fl.res.out.x);
-        Fl.History.n_iter = size(Fl.res.history, 1);
-        Fl.History.history = Fl.res.history;
-        if nargout >= 2, W = Fl.W; end
+        if ~Fl.is_valid_res
+            warning('Fl.res.out.x does not exist or contains NaN!');
+            return;
+        else
+            Fl.get_cost(Fl.res.out.x);
+            Fl.History.n_iter = size(Fl.res.history, 1);
+            Fl.History.history = Fl.res.history;
+            if nargout >= 2, W = Fl.W; end
+        end
+    end
+    function tf = is_valid_res(Fl, res)
+        if nargin < 2
+            res = Fl.res;
+        end
+        tf = ~isfield(res, 'out') ...
+                || ~isfield(res.out, 'x') ...
+                || any(isnan(res.out.x));
     end
 end
 %% fmincon interface
