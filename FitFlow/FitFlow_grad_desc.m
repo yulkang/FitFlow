@@ -417,6 +417,33 @@ methods
         end
     end
 end
+%% Resample
+methods
+    function th_samp = randsample(Fl, n)
+        % EXAMPLE:
+        %
+        % W.Fl.randsample(1e3);
+        % size(W.Dtb.Bound.th_samp)
+        % cov(W.Dtb.Bound.th_samp)
+        
+        % Resample free part
+        cov_free = Fl.get_cov_free;
+        is_free = ~Fl.W.th_fix_vec;
+        est_free = Fl.res.out.x(is_free);
+        
+        samp_free = mvnrnd(est_free, cov_free, n);
+        
+        n_th = length(Fl.W.th_vec);
+        th_samp = zeros(n, n_th);
+        th_samp(:, is_free) = samp_free;
+        
+        % Fill in fixed part
+        th_samp(:, ~is_free) = repmat(hVec(Fl.W.th_vec(~is_free)), [n, 1]);
+        
+        % Set to Fl.W.th_samp
+        Fl.W.th_samp = th_samp;
+    end
+end
 %% Fitting process
 methods
     function init_bef_fit(Fl, Params)
