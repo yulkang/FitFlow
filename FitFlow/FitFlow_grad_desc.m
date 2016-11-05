@@ -419,12 +419,20 @@ methods
 end
 %% Resample
 methods
-    function th_samp = randsample(Fl, n)
+    function th_samp = randsample(Fl, n, varargin)
         % EXAMPLE:
         %
         % W.Fl.randsample(1e3);
         % size(W.Dtb.Bound.th_samp)
         % cov(W.Dtb.Bound.th_samp)
+        
+        S = varargin2S(varargin, {
+            'force_resample', false
+            });
+        
+        if ~S.force_resample && size(Fl.W.th_samp, 1) == n
+            return;
+        end
         
         % Resample free part
         cov_free = Fl.get_cov_free;
