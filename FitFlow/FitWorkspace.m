@@ -257,8 +257,34 @@ methods
 % end
 end
 
-%% FitFlow Interface - Optional
+%% Subworkspace management
 methods
+    function set_sub_from_props(W, props)
+        % May use VisitableTree.add_children_props later, save the time checking
+        if nargin < 2, props = {}; end
+        if ischar(props), props = {props}; end
+        props = props(:);
+        assert(all(cellfun(@ischar, props)));
+        for prop = props'
+            assert(isempty(W.(prop{1})) || isa(W.(prop{1}), 'FitParams'));
+    %         W.add_child(W.(prop{1}), prop{1});
+    %         
+    %         % To keep W.(prop) == W.get_child(prop) after deep_copy
+    %         W.add_deep_copy(prop{1});
+        end
+        W.add_children_props(props);
+    end
+    function remove_child(W, child)
+        W.remove_child@FitParamsForcibleSoft(child);
+        W.Data.W = W; % Recover link
+    end
+end
+%% Deprecated - init_W0
+methods
+function customize_th_for_Data(W, varargin)
+    % Ignored if not implemented
+end
+
 function init_W0(W, props, varargin)
     % init_W0(W, props, varargin)
     %
@@ -302,27 +328,7 @@ function init_W0(W, props, varargin)
     % Template + Chain-of-responsibility.
     W.init_W0_aft_subs(varargin);
 end
-function set_sub_from_props(W, props)
-    % May use VisitableTree.add_children_props later, save the time checking
-    if nargin < 2, props = {}; end
-    if ischar(props), props = {props}; end
-    props = props(:);
-    assert(all(cellfun(@ischar, props)));
-    for prop = props'
-        assert(isempty(W.(prop{1})) || isa(W.(prop{1}), 'FitParams'));
-%         W.add_child(W.(prop{1}), prop{1});
-%         
-%         % To keep W.(prop) == W.get_child(prop) after deep_copy
-%         W.add_deep_copy(prop{1});
-    end
-    W.add_children_props(props);
-end
-
 % FIXIT: Consider mergining into init_W0, or call from init_W0
-function customize_th_for_Data(W, varargin)
-    % Ignored if not implemented
-end
-
 function init_W0_bef_subs(W, varargin)
 end
 function init_W0_aft_subs(W, varargin)
