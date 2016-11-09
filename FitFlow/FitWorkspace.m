@@ -21,10 +21,21 @@ properties (Transient)
 end
 %% Methods
 methods
-function W = FitWorkspace
+function W = FitWorkspace(varargin)
     W.hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
-    
     W.add_deep_copy({'Data_'});
+    
+    if nargin > 0
+        W.init(varargin{:});
+    end
+end
+function init(W, varargin)
+    bml.oop.varargin2props(W, varargin, true);
+    
+    for child_name = fieldnames(W.children)'
+        child = W.children.(child_name{1});
+        child.init(varargin{:});
+    end
 end
 function [Fl, res] = fit(W, varargin)
     % [Fl, res] = fit(W, varargin)
@@ -54,7 +65,8 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
     else
         Fl = FitFlow;
     end
-    Fl.set_W0(W); % .deep_copy);
+    W.Fl = Fl;
+%     Fl.set_W0(W); % .deep_copy);
     Fl.set_W(W);
 %     try
 %         Fl.W0.init_W0;
@@ -62,12 +74,13 @@ function Fl = get_Fl(W, new_Fl_instance, varargin)
 %     catch err
 %         warning(err_msg(err));
 %     end
-    
+
     if S.add_plotfun
         W.add_plotfun(Fl);
     end
 end
 function add_plotfun(W, Fl, varargin)
+    % Fl is required to prevent endless recursion with get_Fl.
     W.add_plotfun_optimplotfval(Fl, varargin{:});
     W.add_plotfun_optimplotx(Fl, varargin{:});
 end
@@ -174,6 +187,7 @@ methods
         % only by using FitWorkspace.set_Data.
         src = W.get_Data_source;
         src.set_Data_(Dat);
+        Dat.W = src;
     end
     function set_root(W, new_root)
         % When the W itself becomes a root,
@@ -243,8 +257,34 @@ methods
 % end
 end
 
-%% FitFlow Interface - Optional
+%% Subworkspace management
 methods
+    function set_sub_from_props(W, props)
+        % May use VisitableTree.add_children_props later, save the time checking
+        if nargin < 2, props = {}; end
+        if ischar(props), props = {props}; end
+        props = props(:);
+        assert(all(cellfun(@ischar, props)));
+        for prop = props'
+            assert(isempty(W.(prop{1})) || isa(W.(prop{1}), 'FitParams'));
+    %         W.add_child(W.(prop{1}), prop{1});
+    %         
+    %         % To keep W.(prop) == W.get_child(prop) after deep_copy
+    %         W.add_deep_copy(prop{1});
+        end
+        W.add_children_props(props);
+    end
+    function remove_child(W, child)
+        W.remove_child@FitParamsForcibleSoft(child);
+        W.Data.W = W; % Recover link
+    end
+end
+%% Deprecated - init_W0
+methods
+function customize_th_for_Data(W, varargin)
+    % Ignored if not implemented
+end
+
 function init_W0(W, props, varargin)
     % init_W0(W, props, varargin)
     %
@@ -288,27 +328,7 @@ function init_W0(W, props, varargin)
     % Template + Chain-of-responsibility.
     W.init_W0_aft_subs(varargin);
 end
-function set_sub_from_props(W, props)
-    % May use VisitableTree.add_children_props later, save the time checking
-    if nargin < 2, props = {}; end
-    if ischar(props), props = {props}; end
-    props = props(:);
-    assert(all(cellfun(@ischar, props)));
-    for prop = props'
-        assert(isempty(W.(prop{1})) || isa(W.(prop{1}), 'FitParams'));
-%         W.add_child(W.(prop{1}), prop{1});
-%         
-%         % To keep W.(prop) == W.get_child(prop) after deep_copy
-%         W.add_deep_copy(prop{1});
-    end
-    W.add_children_props(props);
-end
-
 % FIXIT: Consider mergining into init_W0, or call from init_W0
-function customize_th_for_Data(W, varargin)
-    % Ignored if not implemented
-end
-
 function init_W0_bef_subs(W, varargin)
 end
 function init_W0_aft_subs(W, varargin)
