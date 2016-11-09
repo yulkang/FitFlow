@@ -9,6 +9,8 @@ properties
     th_lb = [];
     th_ub = [];
     th_grad = []; % scalar gradient
+    
+    th_samp = []; % Samples - catered from, e.g., FitFlow
 end
 properties (Dependent)
     th_fix
@@ -195,6 +197,17 @@ methods
         for ii = 1:numel(Prm)
             loc = sum(numels(1:(ii-1))) + (1:numels(ii));
             Prm(ii).(prop) = reshape(th(loc), Prm(ii).get_size);
+        end
+    end
+    function [Prm, numels] = set_mat(Prm, th, prop)
+        if nargin < 3, prop = 'th_samp'; end
+        
+        numels = Prm.get_numel;
+        n_samp = size(th, 1);
+        
+        for ii = 1:numel(Prm)
+            loc = sum(numels(1:(ii-1))) + (1:numels(ii));
+            Prm(ii).(prop) = reshape(th(:,loc), [n_samp,Prm(ii).get_size]);
         end
     end
     function v = get_numel(Prm, S)

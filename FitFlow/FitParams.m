@@ -29,6 +29,7 @@ properties (Dependent) % For convenience
     th_lb_vec
     th_ub_vec
     th_fix_vec
+    th_names_fixed
     
     th_vec_free
     th0_vec_free
@@ -59,6 +60,9 @@ properties (Dependent) % For convenience
     th_grad_vec
     th_grad_free
     th_grad_vec_free
+    
+    % Samples
+    th_samp % (samp, th)
 end
 %% Methods
 methods
@@ -149,6 +153,13 @@ function v = get.th_grad_vec_free(Params)
 end
 function set.th_grad_vec_free(Params, v)
     Params.th_grad_vec(~Params.th_fix_vec) = v;
+end
+%% Samples
+function set.th_samp(Params, v)
+    Params.set_mat_recursive(v, 'th_samp');
+end
+function v = get.th_samp(Params)
+    v = Params.get_mat_recursive('th_samp');
 end
 %% Parameters
 function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
@@ -326,7 +337,143 @@ function remove_constraints_all(Params, remove_th_all)
         Params.Constr = Params.Constr.remove_all;
     end
 end
+end
+%% Constraints - Use
+methods
+    function [all_met, met, v] = is_constr_met(Params, x)
+        if nargin < 2
+            x = Params.th_vec;
+        end
+        Constr = Params.Constr;
+        C = Constr.get_fmincon_cond(Params.th_names);
+        
+        if size(x, 1) > 1
+            x_all = row2cell(x);
+            
+            [all_met, met, v] = cellfun(@(x) Params.is_constr_met_static( ...
+                x, Params.th_lb_vec, Params.th_ub_vec, C{:}), x_all);
+        else
+            [all_met, met, v] = Params.is_constr_met_static( ...
+                x, Params.th_lb_vec, Params.th_ub_vec, C{:});
+        end
+    end
+    function [A, b] = get_constr_linear(Params)
+        % Returns linear constraints A and b
+        % such that A * Params.th_vec(:) <= b,
+        % including lb, ub, Aeq, and beq.
+        
+        C = Params.Constr.get_fmincon_cond(Params.th_names);
+        A = C{1};
+        b = C{2};
+        Aeq = C{3};
+        beq = C{4};
+        
+        % Add Aeq, beq, to A and b.
+        if ~isempty(Aeq)
+            A = [A; Aeq; -Aeq];
+            b = [b; beq; -beq];
+        end
+        
+        % Add lb, ub to A and b.
+        n_th = length(Params.th_vec);
+        lb = Params.th_lb_vec(:);
+        ub = Params.th_ub_vec(:);
+        
+        A = [A; eye(n_th); -eye(n_th)];
+        b = [b; ub; -lb];
+    end
+    function [A, b] = get_constr_linear_free(Params)
+        [A0, b0] = Params.get_constr_linear;
+        is_free = ~Params.th_fix_vec;
+        A = A0(:, is_free);
+        all0 = all(A == 0, 2);
+        A = A(~all0, :);
+        b = b0(~all0);
+    end
+end
+methods (Static)
+    function [all_met, met, v] = is_constr_met_static(x, lb, ub, A, b, Aeq, beq, nonlcon)
+        % Tests if all constraints are met.
+        %
+        % [all_met, met] = is_constr_met(x, lb, ub, A, b, Aeq, beq, nonlcon)
+        %
+        % x: parameter vector.
+        % lb, ub: vectors of the same length as x. Leave empty to skip.
+        % A, b, Aeq, beq, nonlcon: as from fmincon. Leave empty to skip.
+        %
+        % all_met: scalar logical.
+        % met: struct of logical fields.
+        % v: struct of values.
+
+        % 2016 Yul Kang. hk2699 at columbia dot edu.
+
+        all_met = true;
+
+        assert(isrow(x));
+        n = length(x);
+
+        if ~exist('lb', 'var') || isempty(lb)
+            lb = -inf + zeros(1, n);
+        else
+            assert(isrow(lb));
+            assert(length(lb) == n);
+        end
+
+        if ~exist('ub', 'var') || isempty(ub)
+            ub = +inf + zeros(1, n);
+        else
+            assert(isrow(ub));
+            assert(length(ub) == n);
+        end
+        if ~exist('A', 'var'), A = []; end
+        if ~exist('b', 'var'), b = []; end
+        if ~exist('Aeq', 'var'), Aeq = []; end
+        if ~exist('beq', 'var'), beq = []; end
+        if ~exist('nonlcon', 'var'), nonlcon = []; end
+
+        v.lb = lb - x;
+        met.lb = x >= lb;
+        all_met = all_met && all(met.lb);
+
+        v.ub = x - ub;
+        met.ub = x <= ub;
+        all_met = all_met && all(met.ub);
+
+        if ~isempty(A)
+            v.Ab = A * x' - b(:);
+            met.Ab = v.Ab <= 0;
+            all_met = all_met && all(met.Ab);
+        else
+            v.Ab = [];
+            met.Ab = [];
+        end
+
+        if ~isempty(Aeq)
+            v.Abeq = Aeq * x' - beq(:);
+            met.Abeq = v.Abeq == 0;
+            all_met = all_met && all(met.Abeq);
+        else
+            v.Abeq = [];
+            met.Abeq = [];
+        end
+
+        if ~isempty(nonlcon)
+            v_nonlcon = nonlcon(x);
+            v.c = v_nonlcon(1);
+            v.ceq = v_nonlcon(2);
+            met.c = v.c <= 0;
+            met.ceq = v.ceq == 0;
+            all_met = all_met && met.c && met.ceq;
+        else
+            v.c = [];
+            v.ceq = [];
+            met.c = [];
+            met.ceq = [];
+        end
+    end
+end
 %% Subparameters
+methods
 function add_sub(Params, name, sub_Params)
     % add_sub(Params, name, sub_Params)    
     % Uses VisitableTree.add_children
@@ -403,6 +550,40 @@ function n_el_set = set_vec_recursive(Params, v, prop)
 %         c_n_el_set = Params.sub.(sub{1}).set_vec_recursive(v((n_el_set+1):end), prop);
 %         n_el_set   = n_el_set + c_n_el_set;
 %     end
+end
+
+function v = get_mat(Params, prop)
+    if nargin < 2, prop = 'th_samp'; end
+    v = cellfun(@(v) v(:), struct2cell(Params.get_struct(prop)), ...
+        'UniformOutput', false);
+    v = cell2mat(v(:)');
+end
+function numels = set_mat(Params, v, prop)
+    if nargin < 3, prop = 'th_samp'; end
+    if isempty(v)
+        numels = [];
+    else
+        [~,numels] = Params.Param.set_mat(v, prop);
+    end
+end
+function v = get_mat_recursive(Params, prop)
+    if nargin < 2, prop = 'th_samp'; end
+    v = Params.get_mat(prop);
+    
+    for sub = Params.get_children
+        v2 = sub{1}.get_mat_recursive(prop);
+        v = [v, v2]; %#ok<AGROW>
+    end
+end
+function n_el_set = set_mat_recursive(Params, v, prop)
+    if nargin < 3, prop = 'th_samp'; end
+    numels = Params.set_mat(v, prop);
+    n_el_set = sum(numels);
+    
+    for sub = Params.get_children
+        c_n_el_set = sub{1}.set_mat_recursive(v(:,(n_el_set+1):end), prop);
+        n_el_set   = n_el_set + c_n_el_set;
+    end
 end
 function v = get_vec_fix_recursive(Params)
     th_lb = Params.get_vec_recursive('th_lb');
@@ -918,6 +1099,21 @@ methods
     end
     function set.th_ub_vec_free(Params, v)
         Params.th_ub_vec(~Params.th_fix_vec) = v;
+    end
+    
+    function names = get.th_names_fixed(Params)
+        names0 = Params.th_names;
+        S = Params.th_fix;
+        n = numel(names0);
+        
+        incl = false(1, n);
+        for ii = 1:n
+            name = names0{ii};
+            if any(S.(name))
+                incl(ii) = true;
+            end
+        end
+        names = names0(incl);
     end
 
     function names = get.th_names_free(Params)

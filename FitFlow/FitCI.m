@@ -244,7 +244,7 @@ end
 %% Demo
 methods
     function demo(CI)
-        file = 'Data/Fit.D2.RT.Inh.MainBatch/sbj=DX+prd=RT+dtb=DnIvJt+dft=Const+bnd=Const+ssq=Const+tnd=gamma+kb=0+p1=50+d1=0+d2=0+s1=16+s2=16+fn1=50+fn2=50+ntnd=4+pf=0+d1f=0+d2f=0+db1f=0+db2f=0+s1f=0+s2f=0+bif1=0+baif1=0+bif2=0+baif2=0+fn1f=1+fn2f=1+msf=0+cv=1+ncv=2+ist=0.mat';
+        file = 'Data/Fit.D2.Inh.MainBatch/sbj=DX+prd=RT+dtb=DnIvJt+dft=Const+bnd=Const+ssq=Const+tnd=gamma+kb=0+p1=50+d1=0+d2=0+s1=16+s2=16+fn1=50+fn2=50+ntnd=4+pf=0+d1f=0+d2f=0+db1f=0+db2f=0+s1f=0+s2f=0+bif1=0+baif1=0+bif2=0+baif2=0+fn1f=1+fn2f=1+msf=0+cv=1+ncv=2+ist=0.mat';
         L = load(file);
         Fl = L.Fl;
         Fl.W.Dtb.DEBUG_THRES = 1e-4;
