@@ -117,9 +117,14 @@ end
 function [A2, b2] = reduce_constr(A, b, x0, to_fix, cond)
     % [A2, b2] = reduce_constr(A, b, x0, to_fix, cond)
     A2 = A(:,~to_fix);
-    b2 = b(:) - sum(bsxfun(@times, A(:,to_fix), hVec(x0(to_fix))), 2);
     
-    null_rows = ~any(A2, 2);    
+    nonzero_A = any(A, 1);
+    nonzero_fixed = to_fix(:) & nonzero_A(:);
+    contrib_A = bsxfun(@times, A(:,nonzero_fixed), hVec(x0(nonzero_fixed)));
+    
+    b2 = b(:) - sum(contrib_A, 2);
+    
+    null_rows = ~any(A2, 2);
     if any(~cond(0, b2(null_rows))) % Since null rows of A2 always gives zero.
         error('x0 violates %s', func2str(cond));
     end
