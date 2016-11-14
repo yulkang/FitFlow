@@ -43,6 +43,7 @@ function [Fl, res] = fit(W, varargin)
     % A template for fitting functions.
     % See also: FitFlow.fit_grid
     Fl = W.get_Fl;
+    W.pred; % For the initial runPlotFcns
     res = Fl.fit(varargin{:});
 end
 function [Fl, res] = fit_grid(W, varargin)
