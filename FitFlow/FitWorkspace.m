@@ -31,7 +31,9 @@ function W = FitWorkspace(varargin)
 end
 function init(W, varargin)
     bml.oop.varargin2props(W, varargin, true);
-    
+    W.init_children(varargin{:});
+end
+function init_children(W, varargin)
     for child_name = fieldnames(W.children)'
         child = W.children.(child_name{1});
         child.init(varargin{:});
