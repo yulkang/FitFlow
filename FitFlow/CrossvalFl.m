@@ -43,7 +43,7 @@ properties
     estimate_params = false;
     
     % fit_opts : fit option, e.g., MaxIter
-    fit_opts = {};
+    fit_opts = {'UseParallel', 'always'};
 end
 methods
     function Cv = CrossvalFl(varargin)
