@@ -64,279 +64,302 @@ properties (Dependent) % For convenience
     % Samples
     th_samp % (samp, th)
 end
-%% Methods
+%% Construction
 methods
-function Params = FitParams(name, Param_args, Constr_args)
-    % Params = FitParams(name, Param_args, Constr_args)
-    % Param_args: fed to Params.add_params
-    % Constr_args: fed to Params.add_constraints
-    %
-    % See also: add_params, add_constraints
-    
-    % DeepCopyable properties
-    Params.add_deep_copy({'Param', 'Constr'});
-    
-    % New properties
-    if nargin == 0
-        return;
-    end
-    if nargin >= 1
-        Params.set_name_(name);
-    end
-    if nargin >= 2
-        Params.add_params(Param_args{:});
-    end
-    if nargin >= 3
-        Params.add_constraints(Constr_args{:});
+    function Params = FitParams(name, Param_args, Constr_args)
+        % Params = FitParams(name, Param_args, Constr_args)
+        % Param_args: fed to Params.add_params
+        % Constr_args: fed to Params.add_constraints
+        %
+        % See also: add_params, add_constraints
+
+        % DeepCopyable properties
+        Params.add_deep_copy({'Param', 'Constr'});
+
+        % New properties
+        if nargin == 0
+            return;
+        end
+        if nargin >= 1
+            Params.set_name_(name);
+        end
+        if nargin >= 2
+            Params.add_params(Param_args{:});
+        end
+        if nargin >= 3
+            Params.add_constraints(Constr_args{:});
+        end
     end
 end
-
 %% High-level set/get
-function set_th0_safe(Params, name, v)
-    % set_th0_safe(Params, name, v)
-    th_lb = Params.th_lb.(name);
-    th_ub = Params.th_ub.(name);
-    
-    Params.th0.(name) = min(th_ub, max(th_lb, v));
+methods
+    function set_th0_safe(Params, name, v)
+        % set_th0_safe(Params, name, v)
+        th_lb = Params.th_lb.(name);
+        th_ub = Params.th_ub.(name);
+
+        Params.th0.(name) = min(th_ub, max(th_lb, v));
+    end
 end
 
 %% Dependent props
-function v = get.th(Params)
-    v = Params.get_struct_recursive('th');
-end
-function v = get.th0(Params)
-    v = Params.get_struct_recursive('th0');
-end
-function v = get.th_lb(Params)
-    v = Params.get_struct_recursive('th_lb');
-end
-function v = get.th_ub(Params)
-    v = Params.get_struct_recursive('th_ub');
-end
-function v = get.th_fix(Params)
-    v = Params.get_struct_recursive('th_fix');
-end
-function v = get.th_names(Params)
-    v = Params.get_names_recursive;
-end
+methods
+    function v = get.th(Params)
+        v = Params.get_struct_recursive('th');
+    end
+    function v = get.th0(Params)
+        v = Params.get_struct_recursive('th0');
+    end
+    function v = get.th_lb(Params)
+        v = Params.get_struct_recursive('th_lb');
+    end
+    function v = get.th_ub(Params)
+        v = Params.get_struct_recursive('th_ub');
+    end
+    function v = get.th_fix(Params)
+        v = Params.get_struct_recursive('th_fix');
+    end
+    function v = get.th_names(Params)
+        v = Params.get_names_recursive;
+    end
 
-function set.th(Params, v)
-    Params.set_struct_recursive(v, 'th');
-end
-function set.th0(Params, v)
-    Params.set_struct_recursive(v, 'th0');
-end
-function set.th_lb(Params, v)
-    Params.set_struct_recursive(v, 'th_lb');
-end
-function set.th_ub(Params, v)
-    Params.set_struct_recursive(v, 'th_ub');
-end
-function set.th_fix(Params, v)
-    Params.set_struct_recursive(v, 'th_fix');
+    function set.th(Params, v)
+        Params.set_struct_recursive(v, 'th');
+    end
+    function set.th0(Params, v)
+        Params.set_struct_recursive(v, 'th0');
+    end
+    function set.th_lb(Params, v)
+        Params.set_struct_recursive(v, 'th_lb');
+    end
+    function set.th_ub(Params, v)
+        Params.set_struct_recursive(v, 'th_ub');
+    end
+    function set.th_fix(Params, v)
+        Params.set_struct_recursive(v, 'th_fix');
+    end
 end
 %% Gradients
-function v = get.th_grad(Params)
-    v = Params.get_struct_recursive('th_grad');
-end
-function set.th_grad(Params, v)
-    Params.set_struct_recursive(v, 'th_grad');
-end
-function v = get.th_grad_vec(Params)
-    v = Params.get_vec_recursive('th_grad');
-end
-function set.th_grad_vec(Params, v)
-    Params.set_vec_recursive(v, 'th_grad');
-end
-function v = get.th_grad_vec_free(Params)
-    v = Params.th_grad_vec(~Params.th_fix_vec);
-end
-function set.th_grad_vec_free(Params, v)
-    Params.th_grad_vec(~Params.th_fix_vec) = v;
+methods
+    function v = get.th_grad(Params)
+        v = Params.get_struct_recursive('th_grad');
+    end
+    function set.th_grad(Params, v)
+        Params.set_struct_recursive(v, 'th_grad');
+    end
+    function v = get.th_grad_vec(Params)
+        v = Params.get_vec_recursive('th_grad');
+    end
+    function set.th_grad_vec(Params, v)
+        Params.set_vec_recursive(v, 'th_grad');
+    end
+    function v = get.th_grad_vec_free(Params)
+        v = Params.th_grad_vec(~Params.th_fix_vec);
+    end
+    function set.th_grad_vec_free(Params, v)
+        Params.th_grad_vec(~Params.th_fix_vec) = v;
+    end
 end
 %% Samples
-function set.th_samp(Params, v)
-    Params.set_mat_recursive(v, 'th_samp');
-end
-function v = get.th_samp(Params)
-    v = Params.get_mat_recursive('th_samp');
+methods
+    function set.th_samp(Params, v)
+        Params.set_mat_recursive(v, 'th_samp');
+    end
+    function v = get.th_samp(Params)
+        v = Params.get_mat_recursive('th_samp');
+    end
 end
 %% Parameters
-function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
-    % copy_params(dst, src, names_src)
-    % copy_params(dst, src, names_src, names_dst)
-    % The order is reversed for th_names because names_dst is optional.
-    if nargin < 3 || isempty(param_names_src)
-        param_names_src = src_Params.th_names;
-    elseif ischar(param_names_src)
-        param_names_src = {param_names_src};
-    end
-    if nargin < 4 || isempty(param_names_dst)
-        param_names_dst = param_names_src;
-    elseif ischar(param_names_dst)
-        param_names_dst = {param_names_dst};
-    end
-    n = length(param_names_src);
-    for ii = 1:n
-        name_src = param_names_src{ii};
-        name_dst = param_names_dst{ii};
-        Param_to_add = src_Params.Param.get_parm(name_src); % Breech of encapsulation
-        if isempty(Param_to_add)
-            error('%s does not exist!', name_src);
-        else
-            Param_to_add = deep_copy(Param_to_add);
-            Param_to_add.name = name_dst; % Breech of encapsulation
-            dst_Params.add_param(Param_to_add);
+methods
+    function copy_params(dst_Params, src_Params, param_names_src, param_names_dst)
+        % copy_params(dst, src, names_src)
+        % copy_params(dst, src, names_src, names_dst)
+        % The order is reversed for th_names because names_dst is optional.
+        if nargin < 3 || isempty(param_names_src)
+            param_names_src = src_Params.th_names;
+        elseif ischar(param_names_src)
+            param_names_src = {param_names_src};
         end
-%         for f = {'th', 'th0', 'th_lb', 'th_ub'}
-%             dst_Params.(f{1}).(name_dst) = src_Params.(f{1}).(name_src);
-%         end
+        if nargin < 4 || isempty(param_names_dst)
+            param_names_dst = param_names_src;
+        elseif ischar(param_names_dst)
+            param_names_dst = {param_names_dst};
+        end
+        n = length(param_names_src);
+        for ii = 1:n
+            name_src = param_names_src{ii};
+            name_dst = param_names_dst{ii};
+            Param_to_add = src_Params.Param.get_parm(name_src); % Breech of encapsulation
+            if isempty(Param_to_add)
+                error('%s does not exist!', name_src);
+            else
+                Param_to_add = deep_copy(Param_to_add);
+                Param_to_add.name = name_dst; % Breech of encapsulation
+                dst_Params.add_param(Param_to_add);
+            end
+    %         for f = {'th', 'th0', 'th_lb', 'th_ub'}
+    %             dst_Params.(f{1}).(name_dst) = src_Params.(f{1}).(name_src);
+    %         end
+        end
+    end
+    function add_param(Params, Param)
+        % add_param(Params, Param)
+        th_names = Params.get_names;
+        ix = strcmp(th_names, Param.name);
+        if any(ix)
+            Params.Param(ix) = Param;
+        else
+            Params.Param(end + 1) = Param;
+        end
+    end
+    function add_params(Params, args)
+        % args: {{'name1', th0_1, lb1, ub1}, {...}, ...}
+        Params.Param = Params.Param.add_params(args);
+    end
+    function set_(Params, name, prop, v)
+        % set_(Params, name, prop='th'|'th0'|'th_lb'|'th_ub', value)
+        Params.Param = Params.Param.set_(name, prop, v);
+    end
+    function v = get_(Params, name, prop)
+        % v = get_(Params, name, prop='th'|'th0'|'th_lb'|'th_ub')
+        if nargin < 3, prop = 'th'; end
+        v = Params.Param.get_(name, prop);
     end
 end
-function add_param(Params, Param)
-    % add_param(Params, Param)
-    th_names = Params.get_names;
-    ix = strcmp(th_names, Param.name);
-    if any(ix)
-        Params.Param(ix) = Param;
-    else
-        Params.Param(end + 1) = Param;
+%% Fix/Free
+methods
+    function fix_(Params, th_names)
+        if nargin < 2, th_names = Params.th_names; end
+        if ischar(th_names)
+            th_names = {th_names};
+        end
+        for name = th_names(:)'
+            Params.set_(name{1}, 'th_lb', Params.get_(name{1}, 'th0'));
+            Params.set_(name{1}, 'th_ub', Params.get_(name{1}, 'th0'));
+            Params.set_(name{1}, 'th', Params.get_(name{1}, 'th0'));
+        end
+    end
+    function fix_to_th_(Params, th_names)
+        if nargin < 2, th_names = Params.th_names; end
+        if ischar(th_names)
+            th_names = {th_names};
+        end
+        for name = th_names(:)'
+            Params.th0.(name{1}) = Params.th.(name{1});
+            Params.th_fix.(name{1}) = true;
+        end
+    end
+    function fix_to_th0_(Params, th_names)
+        if nargin < 2, th_names = Params.th_names; end
+        if ischar(th_names)
+            th_names = {th_names};
+        end
+        for name = th_names(:)'
+            Params.th.(name{1}) = Params.th0.(name{1});
+            Params.th_fix.(name{1}) = true;
+        end
     end
 end
-function add_params(Params, args)
-    % args: {{'name1', th0_1, lb1, ub1}, {...}, ...}
-    Params.Param = Params.Param.add_params(args);
-end
-function set_(Params, name, prop, v)
-    % set_(Params, name, prop='th'|'th0'|'th_lb'|'th_ub', value)
-    Params.Param = Params.Param.set_(name, prop, v);
-end
-function v = get_(Params, name, prop)
-    % v = get_(Params, name, prop='th'|'th0'|'th_lb'|'th_ub')
-    if nargin < 3, prop = 'th'; end
-    v = Params.Param.get_(name, prop);
-end
-function fix_(Params, th_names)
-    if nargin < 2, th_names = Params.th_names; end
-    if ischar(th_names)
-        th_names = {th_names};
+%% Removing params
+methods
+    function remove_params(Params, th_names)
+        % remove_params(Params, th_names)
+        Params.Param = Params.Param.remove_params(th_names);
     end
-    for name = th_names(:)'
-        Params.set_(name{1}, 'th_lb', Params.get_(name{1}, 'th0'));
-        Params.set_(name{1}, 'th_ub', Params.get_(name{1}, 'th0'));
-        Params.set_(name{1}, 'th', Params.get_(name{1}, 'th0'));
+    function remove_params_all(Params)
+        % remove_params_all(Params)
+        Params.Param = Params.Param.remove_params_all;
     end
 end
-function fix_to_th_(Params, th_names)
-    if nargin < 2, th_names = Params.th_names; end
-    if ischar(th_names)
-        th_names = {th_names};
+%% Param names
+methods
+    function v = get_names(Params)
+        % v = get_names(Params)
+        v = Params.Param.get_names;
     end
-    for name = th_names(:)'
-        Params.th0.(name{1}) = Params.th.(name{1});
-        Params.th_fix.(name{1}) = true;
+    function v = get_names_recursive(Params)
+        % v = get_names_recursive(Params)
+        v = fieldnames(Params.get_struct_recursive)';
     end
-end
-function fix_to_th0_(Params, th_names)
-    if nargin < 2, th_names = Params.th_names; end
-    if ischar(th_names)
-        th_names = {th_names};
-    end
-    for name = th_names(:)'
-        Params.th.(name{1}) = Params.th0.(name{1});
-        Params.th_fix.(name{1}) = true;
+    function v = get_names_recursive_free(Params)
+        % v = get_names_recursive_free(Params)
+        % Get free (not-th_fix, th_lb~=th_ub) parameters' th_names.
+        v = Params.get_names_recursive;
+        v = v(~Params.get_vec_fix_recursive);
     end
 end
-function remove_params(Params, th_names)
-    % remove_params(Params, th_names)
-    Params.Param = Params.Param.remove_params(th_names);
-end
-function remove_params_all(Params)
-    % remove_params_all(Params)
-    Params.Param = Params.Param.remove_params_all;
-end
-function v = get_names(Params)
-    % v = get_names(Params)
-    v = Params.Param.get_names;
-end
-function v = get_names_recursive(Params)
-    % v = get_names_recursive(Params)
-    v = fieldnames(Params.get_struct_recursive)';
-end
-function v = get_names_recursive_free(Params)
-    % v = get_names_recursive_free(Params)
-    % Get free (not-th_fix, th_lb~=th_ub) parameters' th_names.
-    v = Params.get_names_recursive;
-    v = v(~Params.get_vec_fix_recursive);
-end
-function Params = merge(Params, Params2)
-    % Params = merge(Params, Params2)
-    has_sub = has_children(Params) || has_children(Params2);
-%     has_sub = ~isempty(fieldnames(Params.sub)) || ...
-%               ~isempty(fieldnames(Params2.sub));
-    if has_sub
-        warning('Recursive merging not supported yet!');
+%% Merge two Params objects
+methods
+    function Params = merge(Params, Params2)
+        % Params = merge(Params, Params2)
+        has_sub = has_children(Params) || has_children(Params2);
+    %     has_sub = ~isempty(fieldnames(Params.sub)) || ...
+    %               ~isempty(fieldnames(Params2.sub));
+        if has_sub
+            warning('Recursive merging not supported yet!');
+        end
+        Params.Param  = Params.Param.merge(Params2.Param);
+        Params.Constr = Params.Constr.merge(Params2.Constr);
     end
-    Params.Param  = Params.Param.merge(Params2.Param);
-    Params.Constr = Params.Constr.merge(Params2.Constr);
-end
-function Params = merge_flat(Params, Params2)
-    % Params = merge_flat(Params, Params2)
-    % When Params2 has flattened field th_names, as those from FitGrid.    
-    has_sub = has_children(Params) || has_children(Params2);
-%     has_sub = ~isempty(fieldnames(Params.sub)) || ...
-%               ~isempty(fieldnames(Params2.sub));
-    if has_sub
-        warning('Recursive merging of constraints not supported yet!');
-    end
-    
-    for prop = {'th', 'th0', 'th_lb', 'th_ub'}
-        Params.set_struct_recursive( ...
-            Params2.get_struct_recursive(prop{1}), prop{1});
-    end
-    Params.Constr = Params.Constr.merge(Params2.Constr);
-end
-%% Constraints
-function add_constraints(Params, constrs)
-    % add_constraints(Params, {{kind, th_names, args}, {...}, ...})
-    %
-    % th_names: {'th1', 'th2'}
-    % kind: 'A', 'Aeq', 'c', 'ceq'
-    % args: {[a1, a2], b} or {f(a2, a2)}
-    %
-    % See also: FitParams.add_constraint
-    Params.Constr = Params.Constr.add_constraints(constrs);
-end
-function add_constraint(Params, kind, th_names, args)
-    % add_constraint(Params, kind, th_names, args)
-    %
-    % th_names: {'th1', 'th2'}
-    % kind: 'A', 'Aeq', 'c', 'ceq'
-    % args: {[a1, a2], b} or {f(a2, a2)}
-    %
-    % See also: FitParams.add_constraints
-    Params.Constr = Params.Constr.add_constraint(kind, th_names, args);
-end
-function remove_constraints_by_params(Params, param_names)
-    % remove_constraints(Params) 
-    % : Remove all constraints
-    %
-    % remove_constraints_th(Params, param_names) 
-    % : Remove constraints with the specified parameters.
-    if nargin < 2
-        param_names = Params.get_names;
-    end
-    Params.Constr = Params.Constr.remove_th(param_names);
-end
-function remove_constraints_all(Params, remove_th_all)
-    % remove_constraints_all(Params, remove_th_all = false)
-    if nargin < 2, remove_th_all = false; end
-    if remove_th_all
-        Params.Constr = FitConstraints;
-    else
-        Params.Constr = Params.Constr.remove_all;
+    function Params = merge_flat(Params, Params2)
+        % Params = merge_flat(Params, Params2)
+        % When Params2 has flattened field th_names, as those from FitGrid.    
+        has_sub = has_children(Params) || has_children(Params2);
+    %     has_sub = ~isempty(fieldnames(Params.sub)) || ...
+    %               ~isempty(fieldnames(Params2.sub));
+        if has_sub
+            warning('Recursive merging of constraints not supported yet!');
+        end
+
+        for prop = {'th', 'th0', 'th_lb', 'th_ub'}
+            Params.set_struct_recursive( ...
+                Params2.get_struct_recursive(prop{1}), prop{1});
+        end
+        Params.Constr = Params.Constr.merge(Params2.Constr);
     end
 end
+%% Constraints - add/remove
+methods
+    function add_constraints(Params, constrs)
+        % add_constraints(Params, {{kind, th_names, args}, {...}, ...})
+        %
+        % th_names: {'th1', 'th2'}
+        % kind: 'A', 'Aeq', 'c', 'ceq'
+        % args: {[a1, a2], b} or {f(a2, a2)}
+        %
+        % See also: FitParams.add_constraint
+        Params.Constr = Params.Constr.add_constraints(constrs);
+    end
+    function add_constraint(Params, kind, th_names, args)
+        % add_constraint(Params, kind, th_names, args)
+        %
+        % th_names: {'th1', 'th2'}
+        % kind: 'A', 'Aeq', 'c', 'ceq'
+        % args: {[a1, a2], b} or {f(a2, a2)}
+        %
+        % See also: FitParams.add_constraints
+        Params.Constr = Params.Constr.add_constraint(kind, th_names, args);
+    end
+    function remove_constraints_by_params(Params, param_names)
+        % remove_constraints(Params) 
+        % : Remove all constraints
+        %
+        % remove_constraints_th(Params, param_names) 
+        % : Remove constraints with the specified parameters.
+        if nargin < 2
+            param_names = Params.get_names;
+        end
+        Params.Constr = Params.Constr.remove_th(param_names);
+    end
+    function remove_constraints_all(Params, remove_th_all)
+        % remove_constraints_all(Params, remove_th_all = false)
+        if nargin < 2, remove_th_all = false; end
+        if remove_th_all
+            Params.Constr = FitConstraints;
+        else
+            Params.Constr = Params.Constr.remove_all;
+        end
+    end
 end
 %% Constraints - Use
 methods
