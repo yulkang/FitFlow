@@ -43,7 +43,10 @@ properties
     estimate_params = false;
     
     % fit_opts : fit option, e.g., MaxIter
-    fit_opts = {'UseParallel', 'always'};
+    fit_opts = {
+        'UseParallel', 'always'
+%         'FiniteDifferenceStepSize', sqrt(eps) * 10
+        };
 end
 methods
     function Cv = CrossvalFl(varargin)
@@ -250,7 +253,15 @@ methods
             end
         else
             for i_set = 1:Cv.n_set
+                t_st = tic;
                 ress{i_set} = Cv.fit_Fl_unit(i_set);
+                t_el = toc(t_st);
+                fprintf( ...
+                    ['---- Cross-validation set %d/%d took %1.1fs, ', ...
+                     'finished at %s\n'], ...
+                    i_set, Cv.n_set, t_el, datestr(now, 30));
+                
+                Cv.ress{i_set} = ress{i_set};
             end
         end
         Cv.ress = ress;
