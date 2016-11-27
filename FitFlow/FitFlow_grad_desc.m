@@ -23,6 +23,8 @@ properties
     grad
     hess
     
+    cost_fun_name = 'get_cost'; % Fl.W.(Fl.cost_fun_name) is used.
+    
     specify_grad = false;
     specify_hess = false;
     
@@ -508,7 +510,7 @@ methods
         % to avoid duplication of code.
         % % Fl.W.Params2W_recursive;
 
-        [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        [varargout{1:max(nargout,1)}] = Fl.W.(Fl.cost_fun_name);
         Fl.cost = varargout{1};
         if nargout >= 2
             Fl.grad = varargout{2};
@@ -535,7 +537,7 @@ methods
             Fl.W.set_vec_free_recursive(th_free_vec);
         end
 
-        c = Fl.W.get_cost;
+        c = Fl.W.(Fl.cost_fun_name);
         Fl.cost = c;
     end
     function c = iterate(Fl, th_vec)
