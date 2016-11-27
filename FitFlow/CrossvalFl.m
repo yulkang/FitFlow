@@ -3,7 +3,10 @@ properties (Transient, SetAccess = protected)
     Fl = []; % FitFlow;
 end
 properties
-    op = 'Kfold';
+    % op:
+    % 'Kfold'
+    % 'KfoldCont' % Contiguous blocks
+    op = 'KfoldCont';
     n_set = 2;
     n_dat = 0;
     p_holdout = 0.5;
@@ -40,7 +43,10 @@ properties
     estimate_params = false;
     
     % fit_opts : fit option, e.g., MaxIter
-    fit_opts = {};
+    fit_opts = {
+        'UseParallel', 'always'
+%         'FiniteDifferenceStepSize', sqrt(eps) * 10
+        };
 end
 methods
     function Cv = CrossvalFl(varargin)
@@ -55,6 +61,8 @@ methods
         if ~isempty(Cv.group) && ~isempty(Cv.Fl)
             assert(length(Cv.group) == Cv.n_dat);
         end
+        
+        Cv.calc_ix;
     end
     function set_Fl(Cv, Fl)
         Cv.Fl = Fl;
@@ -68,11 +76,10 @@ methods
         end
     end
     function res = fit(Cv)
-        Cv.calc_ix;
         res = Cv.fit_Fl;
     end
     function calc_ix(Cv)
-        if ~isempty(Cv.ix_train) || ~isempty(Cv.ix_test)
+        if ~isempty(Cv.ix_train) && ~isempty(Cv.ix_test)
             % If indices are already given, skip calculating.
             return;
         else
@@ -125,8 +132,24 @@ methods
                     fprintf('crossval indices saved to %s\n', file);
                 end
                 
+            case 'KfoldCont'
+                % Does not need saving index, since it is deterministic.
+                n_tr = size(Cv.Fl.W.Data.ds, 1);
+                st = floor(((1:Cv.n_set) - 1) ./ Cv.n_set .* n_tr) + 1;
+                en = [st(2:end) - 1, n_tr];
+                ix0 = 1:n_tr;                
+                
+                Cv.ix_test = cell(1, Cv.n_set);
+                Cv.ix_train = cell(1, Cv.n_set);
+                for i_set = Cv.n_set:-1:1
+                    Cv.ix_test{i_set} = st(i_set):en(i_set);
+                    Cv.ix_train{i_set} = setdiff(ix0, Cv.ix_test{i_set});
+                end
+                
             case 'Holdout'
                 % Incremental calculation and cacheing.
+                % If n_set is larger than previous, calculates a new one.
+                % If not, loads previous.
                 for i_set = Cv.n_set:-1:1
                     Cv.calc_ix_unit(i_set);
                 end
@@ -195,6 +218,10 @@ methods
     end
     function test_calc_ix(Cv)
         %%
+        if isempty(Cv.group)
+            return;
+        end
+        
         n0 = length(Cv.ix_all_data);
         tab0 = tabulate(Cv.group);
         
@@ -226,7 +253,15 @@ methods
             end
         else
             for i_set = 1:Cv.n_set
+                t_st = tic;
                 ress{i_set} = Cv.fit_Fl_unit(i_set);
+                t_el = toc(t_st);
+                fprintf( ...
+                    ['---- Cross-validation set %d/%d took %1.1fs, ', ...
+                     'finished at %s\n'], ...
+                    i_set, Cv.n_set, t_el, datestr(now, 30));
+                
+                Cv.ress{i_set} = ress{i_set};
             end
         end
         Cv.ress = ress;
@@ -267,8 +302,8 @@ methods
         Fl = Cv.Fl.deep_copy;
         
         if Cv.to_inherit_th0
-            Fl.th0 = Cv.Fl.res.th;
-            Fl.th = Fl.th0;
+            Fl.W.th0 = Cv.Fl.res.th;
+            Fl.W.th = Fl.W.th0;
         end
         
         Fl.W.Data.set_filt_spec(ix0_train);
