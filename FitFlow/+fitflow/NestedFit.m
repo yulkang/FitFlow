@@ -154,7 +154,7 @@ methods
         Fl = W.Fl;
         
         % Prevent infinite recursion
-        W.to_use_nested_fit = true; 
+        W.to_use_nested_fit = false; 
         
         % Nested fit in each group
         for ii = 1:numel(W0.th_group)
@@ -165,8 +165,10 @@ methods
             % Run fitting with a new Fl at each time
             W.Fl = [];
             Fl = W.get_Fl;
-            Fl.remove_plotfun_all; % To avoid interfering with the main fit.
-            W.fit;
+%             Fl.remove_plotfun_all; % To avoid interfering with the main fit.
+            W.fit('opts', {
+                'UseParallel', 'never'            
+                });
             
             W0.fix_th_in_group_and_recover_others(group, 'th');
         end
