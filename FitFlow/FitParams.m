@@ -251,20 +251,36 @@ methods
         if ischar(th_names)
             th_names = {th_names};
         end
-        for name = th_names(:)'
-            Params.th0.(name{1}) = Params.th.(name{1});
-            Params.th_fix.(name{1}) = true;
-        end
+        
+        incl = ismember(Params.th_names, th_names);
+        new_vec = Params.th_vec(incl);
+        Params.th0_vec(incl) = new_vec;
+        Params.th_lb_vec(incl) = new_vec;
+        Params.th_ub_vec(incl) = new_vec;
+        
+        % Slow
+%         for name = th_names(:)'
+%             Params.th0.(name{1}) = Params.th.(name{1});
+%             Params.th_fix.(name{1}) = true;
+%         end
     end
     function fix_to_th0_(Params, th_names)
         if nargin < 2, th_names = Params.th_names; end
         if ischar(th_names)
             th_names = {th_names};
         end
-        for name = th_names(:)'
-            Params.th.(name{1}) = Params.th0.(name{1});
-            Params.th_fix.(name{1}) = true;
-        end
+        
+        incl = ismember(Params.th_names, th_names);
+        new_vec = Params.th0_vec(incl);
+        Params.th_vec(incl) = new_vec;
+        Params.th_lb_vec(incl) = new_vec;
+        Params.th_ub_vec(incl) = new_vec;
+
+        % Slow
+%         for name = th_names(:)'
+%             Params.th.(name{1}) = Params.th0.(name{1});
+%             Params.th_fix.(name{1}) = true;
+%         end
     end
 end
 %% Removing params
