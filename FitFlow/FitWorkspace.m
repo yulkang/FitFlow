@@ -7,6 +7,8 @@ properties
     cost_fun = @(W) nan; % For simple costs. Called from W.calc_cost.
     grad_fun = @(W) nan(1, length(W.get_vec));
     hess_fun = [];
+    
+    to_use_nested_fit = false; % For use with fitflow.NestedFit.
 end
 %% Internal variables
 properties (Dependent)
