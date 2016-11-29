@@ -157,6 +157,7 @@ methods
         W.to_use_nested_fit = false; 
         
         % Nested fit in each group
+        figure(2); % DEBUG
         for ii = 1:numel(W0.th_group)
             group = W0.th_group{ii};
 
@@ -172,13 +173,14 @@ methods
             
             W0.fix_th_in_group_and_recover_others(group, 'th');
         end
+        figure(1); % DEBUG
         
         % Recover Fl
         W.Fl = Fl;
         
         % Recover params
-        W0.recover_th_limits;
-        W0.fix_all_th_in_group;
+        W0.fix_th_in_group_and_recover_others(W0.all_th_names_in_group, ...
+            'th');
 
         % Recover W_orig
         W.to_use_nested_fit = true; 
