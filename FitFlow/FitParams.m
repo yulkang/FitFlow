@@ -31,6 +31,8 @@ properties (Dependent) % For convenience
     th_fix_vec
     th_names_fixed
     
+    th_names_prefixed % prefixed with the object's own name.
+    
     th_vec_free
     th0_vec_free
     th_lb_vec_free
@@ -121,6 +123,11 @@ methods
     end
     function v = get.th_names(Params)
         v = Params.get_names_recursive;
+    end
+    function v = get.th_names_prefixed(Params)
+        v = cellfun(@(s) [Params.get_name '__' s], ...
+            Params.th_names, ...
+            'UniformOutput', false);
     end
 
     function set.th(Params, v)
