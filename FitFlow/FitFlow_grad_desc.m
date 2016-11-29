@@ -23,7 +23,7 @@ properties
     grad
     hess
     
-    cost_fun_name = 'get_cost'; % Fl.W.(Fl.cost_fun_name) is used.
+    cost_fun = []; % @Fl.W.get_cost if empty
     
     specify_grad = false;
     specify_hess = false;
@@ -64,7 +64,7 @@ properties
     fit_arg = varargin2map({
         'FminconReduce.fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             'A',   []
             'b',   []
             'Aeq', []
@@ -76,7 +76,7 @@ properties
             });
         'fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             'A',   []
             'b',   []
             'Aeq', []
@@ -88,14 +88,14 @@ properties
             });
         'fminsearchbnd', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             'lb',  Fl.W.th_lb_vec
             'ub',  Fl.W.th_ub_vec
             'options', {}
             });
         'etc_', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             });
         });
 
@@ -207,7 +207,13 @@ methods
             'opts', {}
             'outs', {}
             'solver', 'fmincon'
+            'to_continue_fit', false % If true, skip init_bef_fit
+            'cost_fun', Fl.cost_fun
             });
+        
+        %% Cost fun
+        % If nonempty, relpaces Fl.W.get_cost.
+        Fl.cost_fun = S.cost_fun;
 
         %% optim_fun
         % FminconReduce.fmincon fits reduced model, 
@@ -222,7 +228,9 @@ methods
         end
 
         %% Initialize Fl
-        Fl.init_bef_fit;
+        if ~S.to_continue_fit
+            Fl.init_bef_fit;
+        end
 
         %% Prepare arguments for optim_fun
         % Arguments - get from Fl.fit_arg(S.optim_fun)
@@ -276,14 +284,23 @@ methods
         n_outs = length(outs);
         C_args = struct2cell(S.args);
 
-        % history
-        Fl.History.init_bef_fit(Fl.W);
+        %% Init history
+        if S.to_continue_fit
+            if isfield(Fl.res, 'tSt')
+                st = Fl.res.tSt;
+            else
+                st = tic;
+            end
+        else
+            st = tic;
+            
+            Fl.History.init_bef_fit(Fl.W);
+            Fl.History.n_iter = 0;
+        end
 
         %% Run optimization
-        st = tic;
         fprintf('Fitting Fl.id=%s began at %s\n', Fl.id, datestr(now, 'yyyymmddTHHMMSS'));
 
-        Fl.History.n_iter = 0;
         [c_outs{1:n_outs}] = S.optim_fun(C_args{:});
 
         el = toc(st);
@@ -510,7 +527,11 @@ methods
         % to avoid duplication of code.
         % % Fl.W.Params2W_recursive;
 
-        [varargout{1:max(nargout,1)}] = Fl.W.(Fl.cost_fun_name);
+        if ~isempty(Fl.cost_fun)
+            [varargout{1:max(nargout,1)}] = Fl.cost_fun();
+        else
+            [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        end
         Fl.cost = varargout{1};
         if nargout >= 2
             Fl.grad = varargout{2};
