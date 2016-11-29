@@ -1,6 +1,8 @@
-classdef CrossvalFl < VisitableTree
-properties (Transient, SetAccess = protected)
+classdef CrossvalFl < bml.oop.PropFileNameTree
+%% Settings
+properties (SetAccess = protected)
     Fl = []; % FitFlow;
+    W = []; % FitWorkspace
 end
 properties
     % op:
@@ -10,15 +12,10 @@ properties
     n_set = 2;
     n_dat = 0;
     p_holdout = 0.5;
-    
     group = []; % (tr) = group_id
-    ix_all_data = []; % numerical index.
-    ix_train = {}; % {set}(k) = tr
-    ix_test = {}; % {set}(k) = tr
-    
-    % Deprecated: file.
-%     file = ''; % Storing indicies. If given, load if exists, save if absent.
 
+    file_orig = ''; % Processing an existing file.
+    
     % files_ix{i_set}:
     % If nonempty, store indices per i_set.
     files_ix = {}; 
@@ -31,15 +28,11 @@ properties
     % : if true, use Cv.Fl.res.th as each Fl's new th0
     to_inherit_th0 = true; 
     
-    res = struct;
-    res_all_data = struct;
-    ress = {};
-    
     parallel_mode = 'none'; % 'none' or 'set'
     
     % estimate_params 
+    % : if false (default), use Cv.Fl.res as Cv.res_all_data.
     % : if true, fit with all data after cross-validation.
-    % : if false, use Cv.Fl.res as Cv.res_all_data.
     estimate_params = false;
     
     % fit_opts : fit option, e.g., MaxIter
@@ -48,6 +41,22 @@ properties
 %         'FiniteDifferenceStepSize', sqrt(eps) * 10
         };
 end
+%% Internal
+properties    
+    ix_all_data = []; % numerical index.
+    ix_train = {}; % {set}(k) = tr
+    ix_test = {}; % {set}(k) = tr
+    
+    % Deprecated: file.
+%     file = ''; % Storing indicies. If given, load if exists, save if absent.
+end
+%% Results
+properties
+    res = struct;
+    res_all_data = struct;
+    ress = {};
+end
+%% Main methods
 methods
     function Cv = CrossvalFl(varargin)
         if nargin > 0
@@ -66,6 +75,7 @@ methods
     end
     function set_Fl(Cv, Fl)
         Cv.Fl = Fl;
+        Cv.W = Fl.W;
         if ~isempty(Fl)
             Cv.ix_all_data = Fl.W.Data.get_dat_filt_numeric;
             Cv.n_dat = length(Cv.ix_all_data);
@@ -346,6 +356,56 @@ methods
             'skip_internal', true);
         
         res = Cv.Fl.calc_ic(res);
+    end
+end
+%% Fit a file and save it
+methods
+    function fit_file(Cv, file0)
+        Cv.file_orig = file0;
+        L = load(file0);
+        Fl = L.Fl;
+        Fl.res2W;
+        Cv.init(Fl);
+
+        Cv.fit;
+        
+        Cv.save_mat;
+    end
+    function save_mat(Cv)
+        file = Cv.get_file;
+        L = packStruct(Cv);
+        L = copyFields(L, Cv, {'res', 'ress', 'W', 'Fl'}); %#ok<NASGU>
+        save(file, '-struct', 'L');
+    end
+    function S_file = get_S_file(Cv, varargin)
+        if isempty(Cv.file_orig)
+            S_file = struct;
+        else
+            [~, nam] = fileparts(Cv.file_orig);
+            S2s = bml.str.Serializer;
+            S_file = S2s.convert(nam);
+        end
+        
+        S1_file = varargin2S({
+            'cvk', Cv.op
+            });
+        
+        switch Cv.op
+            case 'HoldOut'
+                S1_file.pho = round(Cv.p_holdout * 100);
+            case {'Kfold', 'KfoldCont'}
+                S1_file.ncv = Cv.n_set;
+        end
+                
+        S_file = copyFields(S_file, S1_file);
+    end
+    function file = get_file(Cv, varargin)
+        file = Cv.get_file@bml.oop.PropFileNameTree(varargin{:});
+        [pth, nam] = fileparts(file);
+        
+        if ~isempty(Cv.W)
+            file = fullfile(pth, class(Cv.W), nam);
+        end
     end
 end
 end
