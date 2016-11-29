@@ -264,6 +264,9 @@ methods
         else
             for i_set = 1:Cv.n_set
                 t_st = tic;
+                fprintf( ...
+                    '---- Cross-validation set %d/%d began at %s\n', ...
+                    i_set, Cv.n_set, datestr(now, 30));
                 ress{i_set} = Cv.fit_Fl_unit(i_set);
                 t_el = toc(t_st);
                 fprintf( ...
@@ -276,6 +279,7 @@ methods
         end
         Cv.ress = ress;
         res = Cv.fit_postprocess(ress); % Get res from ress
+        Cv.res = res;
     end
     function res = fit_Fl_unit(Cv, i_set)
         % Get filters
@@ -356,16 +360,17 @@ methods
             'skip_internal', true);
         
         res = Cv.Fl.calc_ic(res);
+        Cv.res = res;
     end
 end
 %% Fit a file and save it
 methods
-    function fit_file(Cv, file0)
+    function fit_file(Cv, file0, varargin)
         Cv.file_orig = file0;
         L = load(file0);
         Fl = L.Fl;
         Fl.res2W;
-        Cv.init(Fl);
+        Cv.init(Fl, varargin{:});
 
         Cv.fit;
         
@@ -375,7 +380,16 @@ methods
         file = Cv.get_file;
         L = packStruct(Cv);
         L = copyFields(L, Cv, {'res', 'ress', 'W', 'Fl'}); %#ok<NASGU>
+        mkdir2(fileparts(file));
         save(file, '-struct', 'L');
+        fprintf('Saved to %s\n', file);
+    end
+    function Cv = load_mat(Cv0, file)
+        if nargin < 2
+            file = Cv0.get_file;
+        end
+        L = load(file);
+        Cv = L.Cv;
     end
     function S_file = get_S_file(Cv, varargin)
         if isempty(Cv.file_orig)
