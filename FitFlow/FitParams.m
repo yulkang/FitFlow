@@ -573,6 +573,9 @@ function v = get_vec_recursive(Params, prop)
     v = Params.get_vec(prop);
     
     for sub = Params.get_children
+        if isempty(sub{1})
+            continue;
+        end
         v2 = sub{1}.get_vec_recursive(prop);
         v = [v(:)', v2(:)'];
     end
@@ -588,6 +591,9 @@ function n_el_set = set_vec_recursive(Params, v, prop)
     n_el_set = sum(numels);
     
     for sub = Params.get_children
+        if isempty(sub{1})
+            continue;
+        end
         c_n_el_set = sub{1}.set_vec_recursive(v((n_el_set+1):end), prop);
         n_el_set   = n_el_set + c_n_el_set;
     end
