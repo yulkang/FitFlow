@@ -37,9 +37,11 @@ function init(W, varargin)
 end
 function init_children(W, varargin)
     for child_name = fieldnames(W.children)'
-        child = W.children.(child_name{1});
-        child.init(varargin{:});
+        W.init_child(child_name{1}, varargin{:});
     end
+end
+function init_child(W, child_name, varargin)
+    W.children.(child_name).init(varargin{:});
 end
 function [Fl, res] = fit(W, varargin)
     % [Fl, res] = fit(W, varargin)
