@@ -569,9 +569,9 @@ methods
         Fl.runOutputFcns;
     end
     function f = get_cost_fun(Fl)
-%         n_argout = 1 + Fl.specify_grad + Fl.specify_hess;
+        n_argout = 1 + Fl.specify_grad + Fl.specify_hess;
         
-        f = @(th_vec) output(@() Fl.get_cost(th_vec), 1:nargout);
+        f = @(th_vec) output(@() Fl.get_cost(th_vec), 1:n_argout); % 1:nargout);
     end
     function W = res2W(Fl)
     %     Fl.init_bef_fit; % (Fl.W); % CAUTION: Commented out because seems to be a bug.
