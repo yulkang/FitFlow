@@ -1,21 +1,21 @@
-classdef CrossvalFl < VisitableTree
-properties (Transient, SetAccess = protected)
+classdef CrossvalFl < bml.oop.PropFileNameTree
+%% Settings
+properties (SetAccess = protected)
     Fl = []; % FitFlow;
+    W = []; % FitWorkspace
 end
 properties
-    op = 'Kfold';
+    % op:
+    % 'Kfold'
+    % 'KfoldCont' % Contiguous blocks
+    op = 'KfoldCont';
     n_set = 2;
     n_dat = 0;
     p_holdout = 0.5;
-    
     group = []; % (tr) = group_id
-    ix_all_data = []; % numerical index.
-    ix_train = {}; % {set}(k) = tr
-    ix_test = {}; % {set}(k) = tr
-    
-    % Deprecated: file.
-%     file = ''; % Storing indicies. If given, load if exists, save if absent.
 
+    file_orig = ''; % Processing an existing file.
+    
     % files_ix{i_set}:
     % If nonempty, store indices per i_set.
     files_ix = {}; 
@@ -28,20 +28,35 @@ properties
     % : if true, use Cv.Fl.res.th as each Fl's new th0
     to_inherit_th0 = true; 
     
-    res = struct;
-    res_all_data = struct;
-    ress = {};
-    
     parallel_mode = 'none'; % 'none' or 'set'
     
     % estimate_params 
+    % : if false (default), use Cv.Fl.res as Cv.res_all_data.
     % : if true, fit with all data after cross-validation.
-    % : if false, use Cv.Fl.res as Cv.res_all_data.
     estimate_params = false;
     
     % fit_opts : fit option, e.g., MaxIter
-    fit_opts = {};
+    fit_opts = {
+        'UseParallel', 'always'
+%         'FiniteDifferenceStepSize', sqrt(eps) * 10
+        };
 end
+%% Internal
+properties    
+    ix_all_data = []; % numerical index.
+    ix_train = {}; % {set}(k) = tr
+    ix_test = {}; % {set}(k) = tr
+    
+    % Deprecated: file.
+%     file = ''; % Storing indicies. If given, load if exists, save if absent.
+end
+%% Results
+properties
+    res = struct;
+    res_all_data = struct;
+    ress = {};
+end
+%% Main methods
 methods
     function Cv = CrossvalFl(varargin)
         if nargin > 0
@@ -55,9 +70,12 @@ methods
         if ~isempty(Cv.group) && ~isempty(Cv.Fl)
             assert(length(Cv.group) == Cv.n_dat);
         end
+        
+        Cv.calc_ix;
     end
     function set_Fl(Cv, Fl)
         Cv.Fl = Fl;
+        Cv.W = Fl.W;
         if ~isempty(Fl)
             Cv.ix_all_data = Fl.W.Data.get_dat_filt_numeric;
             Cv.n_dat = length(Cv.ix_all_data);
@@ -68,11 +86,10 @@ methods
         end
     end
     function res = fit(Cv)
-        Cv.calc_ix;
         res = Cv.fit_Fl;
     end
     function calc_ix(Cv)
-        if ~isempty(Cv.ix_train) || ~isempty(Cv.ix_test)
+        if ~isempty(Cv.ix_train) && ~isempty(Cv.ix_test)
             % If indices are already given, skip calculating.
             return;
         else
@@ -125,8 +142,24 @@ methods
                     fprintf('crossval indices saved to %s\n', file);
                 end
                 
+            case 'KfoldCont'
+                % Does not need saving index, since it is deterministic.
+                n_tr = size(Cv.Fl.W.Data.ds, 1);
+                st = floor(((1:Cv.n_set) - 1) ./ Cv.n_set .* n_tr) + 1;
+                en = [st(2:end) - 1, n_tr];
+                ix0 = 1:n_tr;                
+                
+                Cv.ix_test = cell(1, Cv.n_set);
+                Cv.ix_train = cell(1, Cv.n_set);
+                for i_set = Cv.n_set:-1:1
+                    Cv.ix_test{i_set} = st(i_set):en(i_set);
+                    Cv.ix_train{i_set} = setdiff(ix0, Cv.ix_test{i_set});
+                end
+                
             case 'Holdout'
                 % Incremental calculation and cacheing.
+                % If n_set is larger than previous, calculates a new one.
+                % If not, loads previous.
                 for i_set = Cv.n_set:-1:1
                     Cv.calc_ix_unit(i_set);
                 end
@@ -195,6 +228,10 @@ methods
     end
     function test_calc_ix(Cv)
         %%
+        if isempty(Cv.group)
+            return;
+        end
+        
         n0 = length(Cv.ix_all_data);
         tab0 = tabulate(Cv.group);
         
@@ -226,11 +263,23 @@ methods
             end
         else
             for i_set = 1:Cv.n_set
+                t_st = tic;
+                fprintf( ...
+                    '---- Cross-validation set %d/%d began at %s\n', ...
+                    i_set, Cv.n_set, datestr(now, 30));
                 ress{i_set} = Cv.fit_Fl_unit(i_set);
+                t_el = toc(t_st);
+                fprintf( ...
+                    ['---- Cross-validation set %d/%d took %1.1fs, ', ...
+                     'finished at %s\n'], ...
+                    i_set, Cv.n_set, t_el, datestr(now, 30));
+                
+                Cv.ress{i_set} = ress{i_set};
             end
         end
         Cv.ress = ress;
         res = Cv.fit_postprocess(ress); % Get res from ress
+        Cv.res = res;
     end
     function res = fit_Fl_unit(Cv, i_set)
         % Get filters
@@ -267,8 +316,8 @@ methods
         Fl = Cv.Fl.deep_copy;
         
         if Cv.to_inherit_th0
-            Fl.th0 = Cv.Fl.res.th;
-            Fl.th = Fl.th0;
+            Fl.W.th0 = Cv.Fl.res.th;
+            Fl.W.th = Fl.W.th0;
         end
         
         Fl.W.Data.set_filt_spec(ix0_train);
@@ -311,6 +360,66 @@ methods
             'skip_internal', true);
         
         res = Cv.Fl.calc_ic(res);
+        Cv.res = res;
+    end
+end
+%% Fit a file and save it
+methods
+    function fit_file(Cv, file0, varargin)
+        Cv.file_orig = file0;
+        L = load(file0);
+        Fl = L.Fl;
+        Fl.res2W;
+        Cv.init(Fl, varargin{:});
+
+        Cv.fit;
+        
+        Cv.save_mat;
+    end
+    function save_mat(Cv)
+        file = Cv.get_file;
+        L = packStruct(Cv);
+        L = copyFields(L, Cv, {'res', 'ress', 'W', 'Fl'}); %#ok<NASGU>
+        mkdir2(fileparts(file));
+        save(file, '-struct', 'L');
+        fprintf('Saved to %s\n', file);
+    end
+    function Cv = load_mat(Cv0, file)
+        if nargin < 2
+            file = Cv0.get_file;
+        end
+        L = load(file);
+        Cv = L.Cv;
+    end
+    function S_file = get_S_file(Cv, varargin)
+        if isempty(Cv.file_orig)
+            S_file = struct;
+        else
+            [~, nam] = fileparts(Cv.file_orig);
+            S2s = bml.str.Serializer;
+            S_file = S2s.convert(nam);
+        end
+        
+        S1_file = varargin2S({
+            'cvk', Cv.op
+            });
+        
+        switch Cv.op
+            case 'HoldOut'
+                S1_file.pho = round(Cv.p_holdout * 100);
+            case {'Kfold', 'KfoldCont'}
+                S1_file.ncv = Cv.n_set;
+        end
+                
+        S_file = copyFields(S_file, S1_file);
+    end
+    function file = get_file(Cv, varargin)
+        file = Cv.get_file@bml.oop.PropFileNameTree(varargin{:});
+        [pth, nam] = fileparts(file);
+        
+        if ~isempty(Cv.W)
+            file = fullfile(pth, class(Cv.W), nam);
+        end
     end
 end
 end

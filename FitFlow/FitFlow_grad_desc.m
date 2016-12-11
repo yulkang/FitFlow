@@ -11,8 +11,8 @@ properties (Dependent)
     W
 end
 properties
-    W0 = FitWorkspace; % FitWorkspace
-    W_ = []; % Set to W0 on fitting.
+%     W0 = FitWorkspace; % FitWorkspace
+    W_ = FitWorkspace; % Set to W0 on fitting.
     save_W = false; % Set to true to save final state. May waste space.
     
     res = struct;
@@ -22,6 +22,8 @@ properties
     cost = nan; 
     grad
     hess
+    
+    cost_fun = []; % @Fl.W.get_cost if empty
     
     specify_grad = false;
     specify_hess = false;
@@ -62,7 +64,7 @@ properties
     fit_arg = varargin2map({
         'FminconReduce.fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             'A',   []
             'b',   []
             'Aeq', []
@@ -74,7 +76,7 @@ properties
             });
         'fmincon', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             'A',   []
             'b',   []
             'Aeq', []
@@ -86,14 +88,14 @@ properties
             });
         'fminsearchbnd', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             'lb',  Fl.W.th_lb_vec
             'ub',  Fl.W.th_ub_vec
             'options', {}
             });
         'etc_', @(Fl) varargin2S({
             'fun', Fl.get_cost_fun()
-            'x0',  Fl.W.th0_vec
+            'x0',  Fl.W.th_vec
             });
         });
 
@@ -106,6 +108,7 @@ properties
             'TypicalX',  Fl.get_th_typical_scale_free % Should supply this because FminconReduce does not reduce it internally
             'FinDiffRelStep', 1e-3 % If too small, SE becomes funky
             'MaxFunEvals', 1e4
+            'UseParallel', 'always'
 %             'DiffMinChange', 1e-4
 %             'TolX', 1e-5
             });
@@ -160,7 +163,7 @@ end
 methods
     function Fl = FitFlow_grad_desc
         
-        Fl.add_deep_copy({'W0', 'W', 'Grid', 'History'}); % 'props', 
+        Fl.add_deep_copy({'W', 'Grid', 'History'}); % 'props',  'W0', 
         Fl.W = FitWorkspace;
 
         Fl.VERSION = 7;
@@ -169,10 +172,10 @@ methods
             Fl.id = randStr(7);
         end
     end
-    function set_W0(Fl, W0)
-        assert(isa(W0, 'FitWorkspace'));
-        Fl.W0 = W0;
-    end
+%     function set_W0(Fl, W0)
+%         assert(isa(W0, 'FitWorkspace'));
+%         Fl.W0 = W0;
+%     end
     function set.W(Fl, W)
         Fl.set_W(W);
     end
@@ -204,7 +207,13 @@ methods
             'opts', {}
             'outs', {}
             'solver', 'fmincon'
+            'to_continue_fit', false % If true, skip init_bef_fit
+            'cost_fun', Fl.cost_fun
             });
+        
+        %% Cost fun
+        % If nonempty, relpaces Fl.W.get_cost.
+        Fl.cost_fun = S.cost_fun;
 
         %% optim_fun
         % FminconReduce.fmincon fits reduced model, 
@@ -219,7 +228,9 @@ methods
         end
 
         %% Initialize Fl
-        Fl.init_bef_fit;
+        if ~S.to_continue_fit
+            Fl.init_bef_fit;
+        end
 
         %% Prepare arguments for optim_fun
         % Arguments - get from Fl.fit_arg(S.optim_fun)
@@ -273,14 +284,23 @@ methods
         n_outs = length(outs);
         C_args = struct2cell(S.args);
 
-        % history
-        Fl.History.init_bef_fit(Fl.W);
+        %% Init history
+        if S.to_continue_fit
+            if isfield(Fl.res, 'tSt')
+                st = Fl.res.tSt;
+            else
+                st = tic;
+            end
+        else
+            st = tic;
+            
+            Fl.History.init_bef_fit(Fl.W);
+            Fl.History.n_iter = 0;
+        end
 
         %% Run optimization
-        st = tic;
         fprintf('Fitting Fl.id=%s began at %s\n', Fl.id, datestr(now, 'yyyymmddTHHMMSS'));
 
-        Fl.History.n_iter = 0;
         [c_outs{1:n_outs}] = S.optim_fun(C_args{:});
 
         el = toc(st);
@@ -366,6 +386,23 @@ methods
         th_free_vec = ~Fl.W.th_fix_vec;
         cov_free = inv(hessian(th_free_vec, th_free_vec));
     end
+    function cv = get_cov(Fl, hessian, th1, th2)
+        % cv = get_cov(Fl, hessian, th1, th2)
+        if ~exist('hessian', 'var') || isempty(hessian)
+            hessian = Fl.res.out.hessian; 
+        end
+        
+        th_free_vec = ~Fl.W.th_fix_vec;
+        n_th = length(th_free_vec);
+        cv = nan(n_th, n_th);
+        cv(th_free_vec, th_free_vec) = Fl.get_cov_free(hessian);
+        
+        if nargin >= 3
+            i_th1 = find(strcmp(th1, Fl.W.th_names));
+            i_th2 = find(strcmp(th2, Fl.W.th_names));
+            cv = cv(i_th1, i_th2);
+        end
+    end
     function res_out = calc_ic(Fl, res)
         if ~exist('res', 'var')
             res = Fl.res;
@@ -399,10 +436,63 @@ methods
         end
     end
 end
+%% Resample
+methods
+    function th_samp = randsample(Fl, n, varargin)
+        % EXAMPLE:
+        %
+        % W.Fl.randsample(1e3);
+        % size(W.Dtb.Bound.th_samp)
+        % cov(W.Dtb.Bound.th_samp)
+        
+        S = varargin2S(varargin, {
+            'force_resample', false
+            });
+        
+        if ~S.force_resample && size(Fl.W.th_samp, 1) == n
+            return;
+        end
+        
+        % Resample free part
+        cov_free = Fl.get_cov_free;
+        is_free = ~Fl.W.th_fix_vec;
+        est_free = Fl.res.out.x(is_free);
+        
+        all_met = false(n, 1);
+        n_th = length(Fl.W.th_vec);
+
+        th_samp = nan(n, n_th);
+        
+        % Fill in fixed part
+        th_samp(:, ~is_free) = repmat(hVec(Fl.W.th_vec(~is_free)), [n, 1]);
+        
+        n_loop_max = 100;
+        n_loop = 0;
+        
+        [A, b] = Fl.W.get_constr_linear_free;
+        
+        while ~all_met
+            n_to_sample = nnz(~all_met);
+            
+            th_samp(~all_met, is_free) = ...
+                rmvnrnd(est_free, cov_free, n_to_sample, A, b);
+            all_met(~all_met) = Fl.W.is_constr_met(th_samp);
+            n_loop = n_loop + 1;
+            
+            if n_loop > n_loop_max
+                warning('n_loop > n_loop_max = %d!', n_loop_max);
+                break;
+            end
+        end
+        
+        % Set to Fl.W.th_samp
+        Fl.W.th_samp = th_samp;
+    end
+end
 %% Fitting process
 methods
     function init_bef_fit(Fl, Params)
-        Fl.W = Fl.W0; % Fl.W0.deep_copy; % Too much problems with deep copying..
+%         Fl.W = Fl.W0; % Fl.W0.deep_copy; % Too much problems with deep copying..
 
         if nargin >= 2 && ~isempty(Params)
             Fl.W.merge_flat(Params);
@@ -437,7 +527,11 @@ methods
         % to avoid duplication of code.
         % % Fl.W.Params2W_recursive;
 
-        [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        if ~isempty(Fl.cost_fun)
+            [varargout{1:max(nargout,1)}] = Fl.cost_fun();
+        else
+            [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        end
         Fl.cost = varargout{1};
         if nargout >= 2
             Fl.grad = varargout{2};
@@ -464,7 +558,7 @@ methods
             Fl.W.set_vec_free_recursive(th_free_vec);
         end
 
-        c = Fl.W.get_cost;
+        c = Fl.W.(Fl.cost_fun_name);
         Fl.cost = c;
     end
     function c = iterate(Fl, th_vec)
@@ -484,8 +578,23 @@ methods
         if isa(Fl.W.Data, 'FitData')
             Fl.W.Data.load_data;
         end
-        Fl.get_cost(Fl.res.out.x);
-        if nargout >= 2, W = Fl.W; end
+        if ~Fl.is_valid_res
+            warning('Fl.res.out.x does not exist or contains NaN!');
+            return;
+        else
+            Fl.get_cost(Fl.res.out.x);
+            Fl.History.n_iter = size(Fl.res.history, 1);
+            Fl.History.history = Fl.res.history;
+            if nargout >= 2, W = Fl.W; end
+        end
+    end
+    function tf = is_valid_res(Fl, res)
+        if nargin < 2
+            res = Fl.res;
+        end
+        tf = isfield(res, 'out') ...
+                && isfield(res.out, 'x') ...
+                && ~any(isnan(res.out.x));
     end
 end
 %% fmincon interface
@@ -846,6 +955,9 @@ methods
         end
         
         % Plot a subset if requested
+        if ~isequal(S.ix, ':') && isnumeric(S.ix)
+            S.ix = S.ix(S.ix <= numel(x));
+        end
         lb = lb(S.ix);
         ub = ub(S.ix);
         names = names(S.ix);
