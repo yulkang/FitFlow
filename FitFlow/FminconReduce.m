@@ -96,9 +96,9 @@ function varargout = postprocess_output(outs, to_fix)
     end
     if nargout >= 2 % gradient
         if numel(outs{2}) ~= nnz(~to_fix)
-            varargout{2} = outs{2}(~to_fix);
+            varargout{2} = vVec(outs{2}(~to_fix));
         else
-            varargout{2} = outs{2};
+            varargout{2} = vVec(outs{2});
         end
     end
     if nargout >= 3 % hessian
