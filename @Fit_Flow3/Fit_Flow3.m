@@ -69,26 +69,26 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         fit_arg = varargin2S({}, {
             'fmincon', @(Fl) varargin2S({
                 'fun', Fl.cost_fun
-                'x0',  Fl.th0_vec(~Fl.th_fix_vec)
+                'x0',  Fl.W.th0_vec(~Fl.W.th_fix_vec)
                 'A',   []
                 'b',   []
                 'Aeq', []
                 'beq', []
-                'lb',  Fl.th_lb_vec(~Fl.th_fix_vec)
-                'ub',  Fl.th_ub_vec(~Fl.th_fix_vec)
+                'lb',  Fl.W.th_lb_vec(~Fl.W.th_fix_vec)
+                'ub',  Fl.W.th_ub_vec(~Fl.W.th_fix_vec)
                 'nonlcon', []
                 'options', {}
                 });
             'fminsearchbnd', @(Fl) varargin2S({
                 'fun', Fl.cost_fun
-                'x0',  Fl.th0_vec(~Fl.th_fix_vec)
-                'lb',  Fl.th_lb_vec(~Fl.th_fix_vec)
-                'ub',  Fl.th_ub_vec(~Fl.th_fix_vec)
+                'x0',  Fl.W.th0_vec(~Fl.W.th_fix_vec)
+                'lb',  Fl.W.th_lb_vec(~Fl.W.th_fix_vec)
+                'ub',  Fl.W.th_ub_vec(~Fl.W.th_fix_vec)
                 'options', {}
                 });
             'etc_', @(Fl) varargin2S({
                 'fun', Fl.cost_fun
-                'x0',  Fl.th0_vec(~Fl.th_fix_vec)
+                'x0',  Fl.W.th0_vec(~Fl.W.th_fix_vec)
                 });
             });
         
@@ -391,18 +391,18 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                     th_name = [th_name, '_' S.sub];
                 end
                 
-                Fl.th.(th_name)    = th0;
-                Fl.th0.(th_name)   = th0;
+                Fl.W.th.(th_name)    = th0;
+                Fl.W.th0.(th_name)   = th0;
                 
                 if nargin >= 4
-                    Fl.th_lb.(th_name) = th_lb;
+                    Fl.W.th_lb.(th_name) = th_lb;
                 else
-                    Fl.th_lb.(th_name) = -inf(size(th0));
+                    Fl.W.th_lb.(th_name) = -inf(size(th0));
                 end
                 if nargin >= 5
-                    Fl.th_ub.(th_name) = th_ub;
+                    Fl.W.th_ub.(th_name) = th_ub;
                 else
-                    Fl.th_ub.(th_name) = inf(size(th0));
+                    Fl.W.th_ub.(th_name) = inf(size(th0));
                 end
             else
                 error('The first argument must be either a string or a cell array of strings!');
@@ -415,7 +415,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             % add_constr(Fl, constr, varargin)
             %
             % Give the second input for fmincon_cond (conds).
-            % Parameter names will be filled in from Fl.th_names.
+            % Parameter names will be filled in from Fl.W.th_names.
             % Results are saved in Fl.constr.
             %
             % TODO:
@@ -468,10 +468,10 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                     th_name = [th_name, '_' S.sub];
                 end
                 
-                try Fl.th    = rmfield(Fl.th, th_name);     catch, end %  err, warning(err_msg(err)); end
-                try Fl.th0   = rmfield(Fl.th0, th_name);    catch, end %  err, warning(err_msg(err)); end
-                try Fl.th_lb = rmfield(Fl.th_lb, th_name);  catch, end %  err, warning(err_msg(err)); end
-                try Fl.th_ub = rmfield(Fl.th_ub, th_name);  catch, end %  err, warning(err_msg(err)); end
+                try Fl.W.th    = rmfield(Fl.W.th, th_name);     catch, end %  err, warning(err_msg(err)); end
+                try Fl.W.th0   = rmfield(Fl.W.th0, th_name);    catch, end %  err, warning(err_msg(err)); end
+                try Fl.W.th_lb = rmfield(Fl.W.th_lb, th_name);  catch, end %  err, warning(err_msg(err)); end
+                try Fl.W.th_ub = rmfield(Fl.W.th_ub, th_name);  catch, end %  err, warning(err_msg(err)); end
             end
         end
         
@@ -542,10 +542,10 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 end
             end
             if ismember('th', compo)
-                Fl.th       = copyFields(Fl.th,  Fl2.th);
-                Fl.th0      = copyFields(Fl.th0, Fl2.th0);
-                Fl.th_lb    = copyFields(Fl.th_lb, Fl2.th_lb);
-                Fl.th_ub    = copyFields(Fl.th_ub, Fl2.th_ub);
+                Fl.W.th       = copyFields(Fl.W.th,  Fl2.th);
+                Fl.W.th0      = copyFields(Fl.W.th0, Fl2.th0);
+                Fl.W.th_lb    = copyFields(Fl.W.th_lb, Fl2.th_lb);
+                Fl.W.th_ub    = copyFields(Fl.W.th_ub, Fl2.th_ub);
             end
             if ismember('fun', compo)
                 Fl.fun      = copyFields(Fl.fun, Fl2.fun);
@@ -587,19 +587,19 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 W = Fl.W; % DEBUG
                 
                 f = @(c_th) Fit_Flow3.calc_cost( ...
-                    Fit_Flow3.fill_vec(c_th, ~Fl.th_fix_vec, Fl.th0_vec), ...
-                    Fl.th_names, W, Fl.fun, ...
+                    Fit_Flow3.fill_vec(c_th, ~Fl.W.th_fix_vec, Fl.W.th0_vec), ...
+                    Fl.W.th_names, W, Fl.fun, ...
                     Fl.fun_out, Fl.fun_opt, Fl.(prop_fun), ...
                     Fl.calc_cost_opt_C);
             end
             
             function [cost, W] = calc_cost_handle(c_th)
                 % Save results to Fl.W and Fl.cost
-                Fl.th_vec(~Fl.th_fix_vec) = c_th;
+                Fl.W.th_vec(~Fl.W.th_fix_vec) = c_th;
                 
                 [cost, W] = Fit_Flow3.calc_cost( ...
-                    Fit_Flow3.fill_vec(c_th, ~Fl.th_fix_vec, Fl.th0_vec), ...
-                    Fl.th_names, Fl.W, Fl.fun, ...
+                    Fit_Flow3.fill_vec(c_th, ~Fl.W.th_fix_vec, Fl.W.th0_vec), ...
+                    Fl.W.th_names, Fl.W, Fl.fun, ...
                     Fl.fun_out, Fl.fun_opt, Fl.(prop_fun), ...
                     Fl.calc_cost_opt_C);
                 
@@ -643,9 +643,9 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             end
             
             %  Allows for setting one guess based on another guess.
-            Fl.th0 = copyFields(Fl.th0, Fl.W.th0);
-            Fl.th_lb = copyFields(Fl.th_lb, Fl.W.th_lb);
-            Fl.th_ub = copyFields(Fl.th_ub, Fl.W.th_ub);
+            Fl.W.th0 = copyFields(Fl.W.th0, Fl.W.th0);
+            Fl.W.th_lb = copyFields(Fl.W.th_lb, Fl.W.th_lb);
+            Fl.W.th_ub = copyFields(Fl.W.th_ub, Fl.W.th_ub);
             
             % Change constr
             if isfield(Fl.W, 'constr')
@@ -694,7 +694,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 if any(f_init)
                     Fl.run_init_pre;
                     
-                    [~, Fl.W] = Fit_Flow3.calc_cost(Fl.th_vec, Fl.th_names, Fl.W, ...
+                    [~, Fl.W] = Fit_Flow3.calc_cost(Fl.W.th_vec, Fl.W.th_names, Fl.W, ...
                         Fl.fun, Fl.fun_out, Fl.fun_opt, names(f_init), ...
                         varargin2C({'calc_cost', false}, Fl.calc_cost_opt_C));
     
@@ -705,7 +705,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 if any(f_iter)
                     Fl.run_iter_pre;
                     
-                    [Fl.cost, Fl.W] = Fit_Flow3.calc_cost(Fl.th_vec, Fl.th_names, Fl.W, ...
+                    [Fl.cost, Fl.W] = Fit_Flow3.calc_cost(Fl.W.th_vec, Fl.W.th_names, Fl.W, ...
                         Fl.fun, Fl.fun_out, Fl.fun_opt, names(f_iter), Fl.calc_cost_opt_C);
     
                     Fl.run_iter_post;
@@ -722,7 +722,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             % res2W(Fl, res)
             %
             % res : if a struct, replaces Fl.res
-            %       if a number, replaces Fl.th with Fl.res.res_all{res}.th
+            %       if a number, replaces Fl.W.th with Fl.res.res_all{res}.th
             %       (after grid fitting)
             
             if nargin >= 2 && ~isempty(res)
@@ -733,8 +733,8 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 end
             end
             Fl.W = Fl.W0; % may cause a bug in older implementation % DEBUG
-            try Fl.W = copyFields(Fl.W, Fl.res.nested, Fl.th_nested); catch, end
-            Fl.th = Fl.res.th;
+            try Fl.W = copyFields(Fl.W, Fl.res.nested, Fl.W.th_nested); catch, end
+            Fl.W.th = Fl.res.th;
             Fl.run;
         end
         
@@ -752,7 +752,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             end
             n = length(S.f);
             
-            th_vec = Fl.th_vec(~Fl.th_fix_vec);
+            th_vec = Fl.W.th_vec(~Fl.W.th_fix_vec);
             
             nf = length(S.f);
             nR = ceil(sqrt(nf));
@@ -787,7 +787,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         function stop = runOutputFcns(Fl)
             f = Fl.outfun;
             
-            th_vec = Fl.th_vec(~Fl.th_fix_vec);
+            th_vec = Fl.W.th_vec(~Fl.W.th_fix_vec);
             
             optimValues = varargin2S({}, {
                 'funcCount', Fl.n_iter * length(th_vec)
@@ -821,7 +821,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             if ~isempty(Fl.W0)
                 Fl.W = Fl.W0; % May cause a bug in older implementations. % DEBUG
             end
-            Fl.th = Fl.th0;
+            Fl.W.th = Fl.W.th0;
             Fl.run_init;
             Fl.run_iter; % Run once to avoid errors in plotting, etc., due to absent variables in W.
             
@@ -896,13 +896,13 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             res.optim_fun_name = optim_nam;
             res.out  = cell2struct(c_outs(:), outs(:), 1);
             res.arg  = args;
-            res.th0  = Fl.th0;
-            res.arg.th0 = Fl.th0;
+            res.th0  = Fl.W.th0;
+            res.arg.th0 = Fl.W.th0;
             res.opt  = opts;
             res.tSt  = st;
             res.tEl  = el;
             res.tEn  = st + el;
-            res.nested = copyFields(struct, Fl.W, Fl.th_nested);
+            res.nested = copyFields(struct, Fl.W, Fl.W.th_nested);
             
             % Truncate history
             if Fl.save_history
@@ -937,17 +937,17 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 res.fval = nan;
             end
             try
-                res.th = Fl.vec2S(hVec(Fit_Flow3.fill_vec(res.out.x, ~Fl.th_fix_vec, Fl.th0_vec)));
+                res.th = Fl.vec2S(hVec(Fit_Flow3.fill_vec(res.out.x, ~Fl.W.th_fix_vec, Fl.W.th0_vec)));
             catch
                 res.th = Fl.vec2S(nan(1, Fl.n_th));
             end
             try
                 res.out.se = hVec(diag(inv(res.out.hessian)));
-                assert(length(res.out.se) == nnz(~Fl.th_fix_vec));
+                assert(length(res.out.se) == nnz(~Fl.W.th_fix_vec));
             catch
-                res.out.se = nan(1, nnz(~Fl.th_fix_vec));
+                res.out.se = nan(1, nnz(~Fl.W.th_fix_vec));
             end           
-            res.se = Fl.vec2S(Fit_Flow3.fill_vec(res.out.se, ~Fl.th_fix_vec, zeros(1, Fl.n_th)));
+            res.se = Fl.vec2S(Fit_Flow3.fill_vec(res.out.se, ~Fl.W.th_fix_vec, zeros(1, Fl.n_th)));
             
             % Prepare to calculate information criteria
             k = Fl.n_th;
@@ -955,7 +955,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             NLL = res.fval;
             
             % Count the number of fixed parameters and subtract from k
-            n_fixed = nnz(Fl.th_fix_vec);
+            n_fixed = nnz(Fl.W.th_fix_vec);
             k = k - n_fixed;
             res.k = k;
             res.n = n;
@@ -990,7 +990,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             
             % Parse spec - get spec_nam, nspec, comb, ncomb
             if isempty(spec)
-                spec = arg2C([Fl.th_names(:), repmat({1}, [length(Fl.th_vec), 1])]);
+                spec = arg2C([Fl.W.th_names(:), repmat({1}, [length(Fl.W.th_vec), 1])]);
             end
             
             if iscell(spec{1})
@@ -1014,7 +1014,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 if isnumeric(cspec)
                     if isscalar(cspec)
                         cspec = parse_spec(nam, ...
-                            linspace(Fl.th_lb.(nam), Fl.th_ub.(nam), cspec + 1));
+                            linspace(Fl.W.th_lb.(nam), Fl.W.th_ub.(nam), cspec + 1));
                     else
                         vec   = cspec;
                         nvec  = length(vec) - 1;
@@ -1079,11 +1079,11 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             nspec = length(spec_nam);
             
             for jj = 1:nspec
-                cFl.th0.(spec_nam{jj})   = comb{jj}(1);
+                cFl.W.th0.(spec_nam{jj})   = comb{jj}(1);
 
                 if grid_opt.restrict
-                    cFl.th_lb.(spec_nam{jj}) = comb{jj}(2);
-                    cFl.th_ub.(spec_nam{jj}) = comb{jj}(3);
+                    cFl.W.th_lb.(spec_nam{jj}) = comb{jj}(2);
+                    cFl.W.th_ub.(spec_nam{jj}) = comb{jj}(3);
                 end
             end
 
@@ -1137,13 +1137,13 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 % If no spec is given, use existing th0, th_lb, th_ub.
 
 %                 % Considering struct spec... % TODO
-%                 ths = Fl.th_names(:)';
+%                 ths = Fl.W.th_names(:)';
 %                 
 %                 for ii = 1:length(ths)
 %                     spec{1}{ii,1} = 
 %                 end
 
-                spec = arg2C([Fl.th_names(:), repmat({1}, [length(Fl.th_vec), 1])]);
+                spec = arg2C([Fl.W.th_names(:), repmat({1}, [length(Fl.W.th_vec), 1])]);
             end
             if nargin < 3, fit_opt = {}; end
             if nargin < 4, grid_opt = {}; end
@@ -1213,15 +1213,15 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             cFl = loadobj(copy(Fl));
             
             if isfield(grid_spec, 'th0')
-                cFl.th0   = varargin2S(grid_spec.th0, cFl.th0, true); % copyFields(cFl.th0,   grid_spec.th0);
+                cFl.W.th0   = varargin2S(grid_spec.th0, cFl.W.th0, true); % copyFields(cFl.W.th0,   grid_spec.th0);
             end
             
             if grid_opt.restrict
                 if isfield(grid_spec, 'th_lb')
-                    cFl.th_lb = varargin2S(grid_spec.th_lb, cFl.th_lb, true); % copyFields(cFl.th_lb, grid_spec.th_lb);
+                    cFl.W.th_lb = varargin2S(grid_spec.th_lb, cFl.W.th_lb, true); % copyFields(cFl.W.th_lb, grid_spec.th_lb);
                 end
                 if isfield(grid_spec, 'th_ub')
-                    cFl.th_ub = varargin2S(grid_spec.th_ub, cFl.th_ub, true); % copyFields(cFl.th_ub, grid_spec.th_ub);
+                    cFl.W.th_ub = varargin2S(grid_spec.th_ub, cFl.W.th_ub, true); % copyFields(cFl.W.th_ub, grid_spec.th_ub);
                 end
             end
             
@@ -1267,9 +1267,9 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             loc_optim = optimoptions(loc_fun, loc_opt{:});
             
             loc_arg = varargin2C(loc_arg, {
-                'x0',           Fl.th0_vec(~Fl.th_fix_vec)
-                'lb',           Fl.th_lb_vec(~Fl.th_fix_vec)
-                'ub',           Fl.th_ub_vec(~Fl.th_fix_vec)
+                'x0',           Fl.W.th0_vec(~Fl.W.th_fix_vec)
+                'lb',           Fl.W.th_lb_vec(~Fl.W.th_fix_vec)
+                'ub',           Fl.W.th_ub_vec(~Fl.W.th_fix_vec)
                 'objective',    Fl.cost_fun
                 'Aineq',        C_constr{1}
                 'bineq',        C_constr{2}
@@ -1318,7 +1318,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 end
             end
             
-            C = fmincon_cond(Fl.th_names(~Fl.th_fix_vec), constr);
+            C = fmincon_cond(Fl.W.th_names(~Fl.W.th_fix_vec), constr);
         end
         
         %% Output/plotting functions
@@ -1374,7 +1374,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 
                 if Fl.plot_opt.per_iter ~= 0
                     if mod(v.iteration, Fl.plot_opt.per_iter) == 0
-                        Fl.th_vec(~Fl.th_fix_vec) = x;
+                        Fl.W.th_vec(~Fl.W.th_fix_vec) = x;
                         Fl.run_iter; % Set W in appropriate state
         %                 assert(Fl.cost == v.fval, 'Discrepancy in cost!'); % DEBUG
 
@@ -1390,7 +1390,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         
         function f = dispfun(Fl)
             f = @c_outfun;
-            th_names = Fl.th_names(~Fl.th_fix_vec);
+            th_names = Fl.W.th_names(~Fl.W.th_fix_vec);
             
             function stop = c_outfun(x, optimValues, state)
                 fprintf('Iter %4d (fval=%1.5g)', optimValues.iteration, optimValues.fval);
@@ -1406,9 +1406,9 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         function f = record_history(Fl)
             % Gives Fl.f_record_history. Used in outfun.
             
-            th_names = Fl.th_names(~Fl.th_fix_vec);
+            th_names = Fl.W.th_names(~Fl.W.th_fix_vec);
             max_iter = Fl.max_iter;
-            n_th     = nnz(~Fl.th_fix_vec);
+            n_th     = nnz(~Fl.W.th_fix_vec);
             
             % id: Prevent confusion between multiple Fl 
             % without using Fl (handle) explicitly during fitting
@@ -1484,10 +1484,10 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         end
         
         function f = optimplotx(Fl)
-            names = Fl.th_names(~Fl.th_fix_vec);
+            names = Fl.W.th_names(~Fl.W.th_fix_vec);
             n     = length(names);
-            ub    = Fl.th_ub_vec(~Fl.th_fix_vec);
-            lb    = Fl.th_lb_vec(~Fl.th_fix_vec);
+            ub    = Fl.W.th_ub_vec(~Fl.W.th_fix_vec);
+            lb    = Fl.W.th_lb_vec(~Fl.W.th_fix_vec);
             
             f = @f_optimplotx;
             
@@ -1562,56 +1562,56 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         
         %% Get/Set
         function v = get.th_vec(Fl)
-            v = S2vec(Fl, Fl.th);
+            v = S2vec(Fl, Fl.W.th);
         end
         
         function v = get.th0_vec(Fl)
-            v = S2vec(Fl, Fl.th0);
+            v = S2vec(Fl, Fl.W.th0);
         end
         
         function v = get.th_ub_vec(Fl)
-            v = S2vec(Fl, Fl.th_ub);
+            v = S2vec(Fl, Fl.W.th_ub);
         end
         
         function v = get.th_lb_vec(Fl)
-            v = S2vec(Fl, Fl.th_lb);
+            v = S2vec(Fl, Fl.W.th_lb);
         end
         
         function v = get.th_fix_vec(Fl)
-            v = Fl.th_lb_vec == Fl.th_ub_vec;
+            v = Fl.W.th_lb_vec == Fl.W.th_ub_vec;
         end
         
         function S = get.th_fix(Fl)
-            S = vec2S(Fl, Fl.th_fix_vec);
+            S = vec2S(Fl, Fl.W.th_fix_vec);
         end
         
         function set.th_fix_vec(Fl, v)
-            Fl.th_lb_vec(v) = Fl.th0_vec(v);
-            Fl.th_ub_vec(v) = Fl.th0_vec(v);
+            Fl.W.th_lb_vec(v) = Fl.W.th0_vec(v);
+            Fl.W.th_ub_vec(v) = Fl.W.th0_vec(v);
         end
         
         function set.th_fix(Fl, v)
-            Fl.th_fix_vec = S2vec(Fl, v);
+            Fl.W.th_fix_vec = S2vec(Fl, v);
         end
         
         function set.th_vec(Fl, v)
-            Fl.th = vec2S(Fl, v);
+            Fl.W.th = vec2S(Fl, v);
         end
         
         function set.th0_vec(Fl, v)
-            Fl.th0 = vec2S(Fl, v);
+            Fl.W.th0 = vec2S(Fl, v);
         end
         
         function set.th_lb_vec(Fl, v)
-            Fl.th_lb = vec2S(Fl, v);
+            Fl.W.th_lb = vec2S(Fl, v);
         end
         
         function set.th_ub_vec(Fl, v)
-            Fl.th_ub = vec2S(Fl, v);
+            Fl.W.th_ub = vec2S(Fl, v);
         end
         
         function S = vec2S(Fl, v)
-            S = cell2struct(num2cell(v(:)), fieldnames(Fl.th), 1);
+            S = cell2struct(num2cell(v(:)), fieldnames(Fl.W.th), 1);
         end
         
         function v = S2vec(~, S)
@@ -1619,7 +1619,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         end
         
         function v = get.th_names(Fl)
-            v = fieldnames(Fl.th)';
+            v = fieldnames(Fl.W.th)';
         end
         
         function v = get.funs(Fl)
@@ -1663,7 +1663,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
         end
         
         function v = get.n_th(Fl)
-            v = length(Fl.th_names);
+            v = length(Fl.W.th_names);
         end
         
         function v = get.n_dat(Fl)
@@ -1805,11 +1805,11 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             Fl.loadDatFl;
             
             %% Fill in th_fix for backward compatibility
-            if ~isprop(Fl,'th_fix') || isempty(Fl.th_fix) ...
-                    || ~isempty(setdiff(fieldnames(Fl.th_fix), fieldnames(Fl.th)))
-                ths = fieldnames(Fl.th);
+            if ~isprop(Fl,'th_fix') || isempty(Fl.W.th_fix) ...
+                    || ~isempty(setdiff(fieldnames(Fl.W.th_fix), fieldnames(Fl.W.th)))
+                ths = fieldnames(Fl.W.th);
                 nTh = length(ths);
-                Fl.th_fix = cell2struct(num2cell(false(nTh,1)),ths,1);
+                Fl.W.th_fix = cell2struct(num2cell(false(nTh,1)),ths,1);
             end
             
             Flnew = Fit_Flow3;
@@ -2032,7 +2032,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
             %       scalar: equivalent to giving linspace(lb, ub, val)
             %       cell  : evaluate within [val{1}(2), val{1}(3)], with an initial value of val{1}(1), then [val{2}(1), val{2}(2)], ...
             %       cell with a scalar numeric: fix value to val{1}(1). Equivalent to repmat(val{1}(1), [1, 3]).
-            %       give NaN to use the value of Fl.th0, th_lb, th_ub.
+            %       give NaN to use the value of Fl.W.th0, th_lb, th_ub.
             %
             % grid_spec{k}: a struct with fields of th0, th_lb, th_ub, fit_opt.
             % grid_opt    : a struct.
@@ -2081,7 +2081,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
 
                         nam = spec_nam{jj};
                         if isnan(cspec(1)) % Clamp to th0
-                            grid_spec{ii}.th0.(nam) = Fl.th0.(nam);
+                            grid_spec{ii}.th0.(nam) = Fl.W.th0.(nam);
                         else
                             grid_spec{ii}.th0.(nam) = cspec(1);
                         end
@@ -2116,7 +2116,7 @@ classdef Fit_Flow3 < matlab.mixin.Copyable
                 if isnumeric(cspec)
                     if isscalar(cspec)
                         cspec = parse_spec(nam, ...
-                            linspace(Fl.th_lb.(nam), Fl.th_ub.(nam), cspec + 1));
+                            linspace(Fl.W.th_lb.(nam), Fl.W.th_ub.(nam), cspec + 1));
                     else
                         vec   = cspec;
                         nvec  = length(vec) - 1;
