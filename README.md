@@ -1,5 +1,5 @@
 # FitFlow
-High-level interface to constrained optimization in MATLAB with
+High-level interface to constrained optimization in MATLAB with:
 - named parameters
 - easy addition/removal of constraints
 - easy specification of the cost function
@@ -106,3 +106,8 @@ See `demo.m` for the script.
   
   ![MCMC samples](https://github.com/yulkang/FitFlow/raw/master/FitFlow/MCMC_samples.png)
   
+## License
+MIT license.
+
+## Development
+Contributions are welcome. Please fork or contact me at yul dot kang dot on at gmail dot com for discussion.
