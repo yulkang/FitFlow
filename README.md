@@ -110,4 +110,4 @@ See `demo.m` for the script.
 MIT license.
 
 ## Development
-Contributions are welcome. Please fork or contact me at yul dot kang dot on at gmail dot com for discussion.
+Contributions are welcome. Please fork the repository or contact me at yul dot kang dot on at gmail dot com for discussion.
