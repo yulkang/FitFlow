@@ -28,7 +28,7 @@ methods
             CI.set_Fl(Fl);
             
             % Using sigma_hessian: doesn't work well. Don't use.
-%             th_free = ~Fl.th_fix_vec;
+%             th_free = ~Fl.W.th_fix_vec;
 %             sigma_hessian = inv(Fl.res.out.hessian(th_free, th_free));
 %             if any(~isfinite(sigma_hessian(:)))
                 sigma_hessian = []; 
@@ -36,7 +36,7 @@ methods
         
             constr = Fl.W.get_fmincon_cond;
             Constr = fitflow.VectorConstraints([
-                {Fl.th_lb_vec, Fl.th_ub_vec}, ...
+                {Fl.W.th_lb_vec, Fl.W.th_ub_vec}, ...
                 constr(:)']);
             Constr.reduce;
 %             if ~isempty(constr) && ~all(cellfun(@isempty, constr))
@@ -45,7 +45,7 @@ methods
 
             C = varargin2C(varargin, {
                 'fun_nll_targ', @Fl.get_cost_from_th_free_vec
-                'th0', Fl.th_vec_free
+                'th0', Fl.W.th_vec_free
                 'sigma_hessian', sigma_hessian
                 'Constr', Constr
 %                 'MC_props', {
@@ -102,6 +102,9 @@ methods
     end
     function main_w_Fl(CI, Fl, varargin)
         CI.init(Fl, varargin{:});
+        CI.main;
+    end
+    function main(CI)
         CI.MCMC.main;
         
         CI.MCMC.plot_all;
@@ -116,7 +119,7 @@ methods
         Fl = CI.Fl;
         res = Fl.res;
 
-        th_free = find(~Fl.th_fix_vec);
+        th_free = find(~Fl.W.th_fix_vec);
         n_th_free = length(th_free);
         n_th_all = res.k + res.n_fixed;
 
@@ -134,7 +137,7 @@ methods
         if ~isempty(ix_nll) && min_nll < res_grad.fval
             th_min = samp(ix_nll, :);
         else
-            th_min = hVec(res_grad.out.x(~Fl.th_fix_vec));
+            th_min = hVec(res_grad.out.x(~Fl.W.th_fix_vec));
             min_nll = res_grad.fval;
         end
         res.th_vec_free_mode = th_min;
@@ -146,8 +149,8 @@ methods
         cov_mat = cov(samp);
         
         % Results from th_mean
-        Fl.th_vec_free = mu;
-        res.th_vec_free_mean = Fl.th_vec_free;
+        Fl.W.th_vec_free = mu;
+        res.th_vec_free_mean = Fl.W.th_vec_free;
         try
             res.fval_mean = Fl.get_cost;
         catch err
@@ -164,20 +167,20 @@ methods
             
             for i_free = 1:n_th_free
                 i_th = th_free(i_free);
-                name = Fl.th_names{i_th};
+                name = Fl.W.th_names{i_th};
                 
                 res.(field).(name) = ...
                     vVec(prctile(samp(:,i_free), pmil / 10));
             end
             for i_th = setdiff(1:n_th_all, th_free)
-                name = Fl.th_names{i_th};
+                name = Fl.W.th_names{i_th};
                 res.(field).(name) = res.th0.(name);
             end
         end
         
         % Results from th_median
-        Fl.th_vec_free = median(samp);
-        res.th_vec_free_median = Fl.th_vec_free;
+        Fl.W.th_vec_free = median(samp);
+        res.th_vec_free_median = Fl.W.th_vec_free;
         try
             res.fval_median = Fl.get_cost;
         catch err
@@ -191,15 +194,15 @@ methods
         res.fval = res.(['fval_', CI.summary_to_use]);
         
         % Store struct
-        Fl.th_vec_free = res.th_vec_free;
-        res.th = Fl.th;
+        Fl.W.th_vec_free = res.th_vec_free;
+        res.th = Fl.W.th;
         
         % Copy to res.out
         % NOTE: th_mean and median are very similar but not the same.
         % Here, res.out.x is from th_median,
         % but se and cov makes more sense with th_mean.
         res.out.fval = res.fval;
-        res.out.x = CI.Fl.th_vec;
+        res.out.x = CI.Fl.W.th_vec;
         res.out.se(th_free) = se;
         res.out.cov_th_free = cov_mat;
         res.out.cov = zeros(n_th_all, n_th_all);
@@ -208,7 +211,7 @@ methods
         res.out.hessian(th_free, th_free) = inv(cov_mat);
         
         for i_th = 1:n_th_free
-            th_name = Fl.th_names_free{i_th};
+            th_name = Fl.W.th_names_free{i_th};
             res.se.(th_name) = res.out.se(i_th);
         end
         
@@ -232,7 +235,7 @@ methods
         assert(isa(Fl, 'FitFlow'));
         
 %         if ~Fl.W.Data.is_loaded || Fl.cost ~= Fl.res.fval ...
-%                 || ~isequal(Fl.res.th, Fl.th)
+%                 || ~isequal(Fl.res.th, Fl.W.th)
             Fl.res2W; % Should run once.
 %         end
         CI.Fl_ = Fl;
@@ -284,7 +287,7 @@ methods
         
         Fl = L.Fl;
         Fl.res2W;
-        disp(Fl.th_vec_free);
+        disp(Fl.W.th_vec_free);
         
 %         aa = cell(1,2);
 %         parfor ii = 1:2, aa{ii} = Fl.W.get_cost; end

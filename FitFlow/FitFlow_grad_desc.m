@@ -558,7 +558,7 @@ methods
             Fl.W.set_vec_free_recursive(th_free_vec);
         end
 
-        c = Fl.W.(Fl.cost_fun_name);
+        c = Fl.get_cost;
         Fl.cost = c;
     end
     function c = iterate(Fl, th_vec)
