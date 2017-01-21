@@ -6,7 +6,9 @@ properties
     pred_fun = @(W) nan; % Simple predictions. Called from W.pred.
     cost_fun = @(W) nan; % For simple costs. Called from W.calc_cost.
     grad_fun = @(W) nan(1, length(W.get_vec));
-    hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
+    hess_fun = [];
+    
+    to_use_nested_fit = false; % For use with fitflow.NestedFit.
 end
 %% Internal variables
 properties (Dependent)
@@ -16,10 +18,30 @@ properties (Access=private)
     % Cannot access without invoking set_Data and get_Data.
     Data_
 end
+properties (Transient)
+    Fl
+end
 %% Methods
 methods
-function W = FitWorkspace
+function W = FitWorkspace(varargin)
+    W.hess_fun = @(W) use(length(W.get_vec), @(n_th) nan(n_th, n_th));
     W.add_deep_copy({'Data_'});
+    
+    if nargin > 0
+        W.init(varargin{:});
+    end
+end
+function init(W, varargin)
+    bml.oop.varargin2props(W, varargin, true);
+    W.init_children(varargin{:});
+end
+function init_children(W, varargin)
+    for child_name = fieldnames(W.children)'
+        W.init_child(child_name{1}, varargin{:});
+    end
+end
+function init_child(W, child_name, varargin)
+    W.children.(child_name).init(varargin{:});
 end
 function [Fl, res] = fit(W, varargin)
     % [Fl, res] = fit(W, varargin)
@@ -27,6 +49,7 @@ function [Fl, res] = fit(W, varargin)
     % A template for fitting functions.
     % See also: FitFlow.fit_grid
     Fl = W.get_Fl;
+    W.pred; % For the initial runPlotFcns
     res = Fl.fit(varargin{:});
 end
 function [Fl, res] = fit_grid(W, varargin)
@@ -35,23 +58,105 @@ function [Fl, res] = fit_grid(W, varargin)
     Fl = W.get_Fl;
     res = Fl.fit_grid(varargin{:});
 end
-function Fl = get_Fl(W, new_Fl_instance)
+function Fl = get_Fl(W, new_Fl_instance, varargin)
+    S = varargin2S(varargin, {
+        'add_plotfun', true
+        });
+    
+    if ~isempty(W.Fl)
+        Fl = W.Fl;
+        return;
+    end
     if nargin >= 2
         Fl = new_Fl_instance;
     else
         Fl = FitFlow;
     end
-    Fl.set_W0(W); % .deep_copy);
-    try
-        Fl.W0.init_W0;
-        Fl.init_bef_fit;
-    catch err
-        warning(err_msg(err));
+    W.Fl = Fl;
+%     Fl.set_W0(W); % .deep_copy);
+    Fl.set_W(W);
+%     try
+%         Fl.W0.init_W0;
+%         Fl.init_bef_fit;
+%     catch err
+%         warning(err_msg(err));
+%     end
+
+    if S.add_plotfun
+        W.add_plotfun(Fl);
+    end
+end
+function add_plotfun(W, Fl, varargin)
+    % Fl is required to prevent endless recursion with get_Fl.
+    W.add_plotfun_optimplotfval(Fl, varargin{:});
+    W.add_plotfun_optimplotx(Fl, varargin{:});
+end
+function add_plotfun_optimplotfval(W, Fl)
+    Fl.add_plotfun({
+        @optimplotfval
+        });
+end
+function add_plotfun_optimplotgrad(W, Fl, varargin)
+    C = varargin2C({
+        'src', 'grad'
+        }, varargin);
+    W.add_plotfun_optimplotx(Fl, C{:});
+end
+function add_plotfun_optimplotx(W, Fl, varargin)
+    S = varargin2S(varargin, {
+        'param_per_optimplotx', 5
+        'src', 'x'
+        });
+    
+    if nargin < 2 || isempty(Fl)
+        Fl = W.get_Fl;
+    end
+    
+    names_scalar = Fl.W.th_names_scalar;
+    n = numel(names_scalar);
+    for ii = 1:ceil(n / S.param_per_optimplotx)
+        st = (ii - 1) * S.param_per_optimplotx + 1;
+        en = min(st - 1 + S.param_per_optimplotx, n);
+        
+        switch S.src
+            case 'x'
+                Fl.add_plotfun({
+                    str2func(sprintf( ...
+                        '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d)', ...
+                            st, en))
+                    });
+            case 'grad'
+                Fl.add_plotfun({
+                    str2func(sprintf( ...
+                        '@(Fl,x,v,s) optimplotx(Fl,x,v,s,''ix'',%d:%d,''src'',''grad'')', ...
+                            st, en))
+                    });
+        end
+    end
+    
+    names_nonscalar = Fl.W.th_names_nonscalar;
+    if ~isempty(names_nonscalar)
+        for name = names_nonscalar(:)'
+            switch S.src
+                case 'x'
+                    Fl.add_plotfun({
+                        str2func(sprintf( ...
+                            '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s)', ...
+                            name{1}))
+                        });
+                case 'grad'
+                    Fl.add_plotfun({
+                        str2func(sprintf( ...
+                            '@(Fl,x,v,s) optimplotx_vec(Fl,''%s'',x,v,s,''src'',''grad'')', ...
+                            name{1}))
+                        });
+            end
+        end
     end
 end
 function [Fl, c] = test_Fl(W)
     Fl = W.get_Fl;
-    c = Fl.get_cost(Fl.th_vec);
+    c = Fl.get_cost(Fl.W.th_vec);
     disp(c);
 end
 end
@@ -89,6 +194,7 @@ methods
         % only by using FitWorkspace.set_Data.
         src = W.get_Data_source;
         src.set_Data_(Dat);
+        Dat.W = src;
     end
     function set_root(W, new_root)
         % When the W itself becomes a root,
@@ -121,10 +227,18 @@ end
 %% Data - etc
 methods
     function n = get_n_tr(W)
-        n = W.Data.get_n_tr;
+        if isa(W.Data, 'FitData')
+            n = W.Data.get_n_tr;
+        else
+            n = nan;
+        end
     end
     function n = get_n_tr0(W)
-        n = W.Data.get_n_tr0;
+        if isa(W.Data, 'FitData')
+            n = W.Data.get_n_tr0;
+        else
+            n = nan;
+        end
     end    
 end
 %% Params and other fields - obsolete. Use VisitorToTree methods.
@@ -150,8 +264,34 @@ methods
 % end
 end
 
-%% FitFlow Interface - Optional
+%% Subworkspace management
 methods
+    function set_sub_from_props(W, props)
+        % May use VisitableTree.add_children_props later, save the time checking
+        if nargin < 2, props = {}; end
+        if ischar(props), props = {props}; end
+        props = props(:);
+        assert(all(cellfun(@ischar, props)));
+        for prop = props'
+            assert(isempty(W.(prop{1})) || isa(W.(prop{1}), 'FitParams'));
+    %         W.add_child(W.(prop{1}), prop{1});
+    %         
+    %         % To keep W.(prop) == W.get_child(prop) after deep_copy
+    %         W.add_deep_copy(prop{1});
+        end
+        W.add_children_props(props);
+    end
+    function remove_child(W, child)
+        W.remove_child@FitParamsForcibleSoft(child);
+        W.Data.W = W; % Recover link
+    end
+end
+%% Deprecated - init_W0
+methods
+function customize_th_for_Data(W, varargin)
+    % Ignored if not implemented
+end
+
 function init_W0(W, props, varargin)
     % init_W0(W, props, varargin)
     %
@@ -195,27 +335,7 @@ function init_W0(W, props, varargin)
     % Template + Chain-of-responsibility.
     W.init_W0_aft_subs(varargin);
 end
-function set_sub_from_props(W, props)
-    % May use VisitableTree.add_children_props later, save the time checking
-    if nargin < 2, props = {}; end
-    if ischar(props), props = {props}; end
-    props = props(:);
-    assert(all(cellfun(@ischar, props)));
-    for prop = props'
-        assert(isempty(W.(prop{1})) || isa(W.(prop{1}), 'FitParams'));
-%         W.add_child(W.(prop{1}), prop{1});
-%         
-%         % To keep W.(prop) == W.get_child(prop) after deep_copy
-%         W.add_deep_copy(prop{1});
-    end
-    W.add_children_props(props);
-end
-
 % FIXIT: Consider mergining into init_W0, or call from init_W0
-function customize_th_for_Data(W, varargin)
-    % Ignored if not implemented
-end
-
 function init_W0_bef_subs(W, varargin)
 end
 function init_W0_aft_subs(W, varargin)
@@ -294,15 +414,30 @@ methods
         W = feval(class(W0));
         W.add_params({
             {'vec', 1:5, zeros(1,5), 10 + zeros(1,5)}
+            {'vec_mixed', 1:5, [0 0 3 4 5], [10 10 3 4 5]}
+            {'vec_fixed', 1:5, 1:5, 1:5}
+            {'scalar1', 2, 0, 10}
+            {'scalar_fixed', 3, 3, 3}
+            {'scalar2', 5, 3, 6}
             });
+        disp(W);
         
         %%
-        W.cost_fun = @(W) sum((W.th.vec - (2:6)).^2);
+        Fl = W.get_Fl;
+        disp(Fl);
+        
+        %%
+        W.cost_fun = @(W) ...
+              sum((W.th.vec - (6:-1:2)).^4) ...
+            + sum((W.th.vec_mixed(1:2) - [2 8]).^2) ...
+            + (W.th.scalar1 - 8) .^ 2 ...
+            + (W.th.scalar2 - 8) .^ 2;
         disp(W.get_cost);
         
         %%
-        W.fit;
-        disp(W.th.vec);
+        Fl = W.get_Fl;
+        Fl.fit;
+        disp(Fl.res.th.vec);
     end
 end
 end

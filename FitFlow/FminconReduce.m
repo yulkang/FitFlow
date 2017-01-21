@@ -59,7 +59,9 @@ function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
 
     % Not using shortcut in function handle, so that it works after
     % converting to string and back.
-    fun2 = @(v) fun(FminconReduce.fill_vec(x0, to_fix, v));
+    fun2 = @(v) FminconReduce.postprocess_output(wrap( ...
+            @() fun(FminconReduce.fill_vec(x0, to_fix, v)), ...
+        1:nargout), to_fix);
     x02  = x0(~to_fix);
     
     % Empty defaults
@@ -88,6 +90,17 @@ function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
         nonlcon2 = @(v) nonlcon(FminconReduce.fill_vec(x0, to_fix, v));
     end
 end
+function varargout = postprocess_output(outs, to_fix)
+    if nargout >= 1 % cost
+        varargout{1} = outs{1};
+    end
+    if nargout >= 2 % gradient
+        varargout{2} = outs{2}(~to_fix);
+    end
+    if nargout >= 3 % hessian
+        varargout{3} = outs{3}(~to_fix, ~to_fix);
+    end
+end
 function v = fill_vec(x0, to_fix, x_vary)
     % v = fill_vec(x0, fixed, to_vary)
     siz = size(x0);
@@ -104,9 +117,14 @@ end
 function [A2, b2] = reduce_constr(A, b, x0, to_fix, cond)
     % [A2, b2] = reduce_constr(A, b, x0, to_fix, cond)
     A2 = A(:,~to_fix);
-    b2 = b(:) - sum(bsxfun(@times, A(:,to_fix), hVec(x0(to_fix))), 2);
     
-    null_rows = ~any(A2, 2);    
+    nonzero_A = any(A, 1);
+    nonzero_fixed = to_fix(:) & nonzero_A(:);
+    contrib_A = bsxfun(@times, A(:,nonzero_fixed), hVec(x0(nonzero_fixed)));
+    
+    b2 = b(:) - sum(contrib_A, 2);
+    
+    null_rows = ~any(A2, 2);
     if any(~cond(0, b2(null_rows))) % Since null rows of A2 always gives zero.
         error('x0 violates %s', func2str(cond));
     end
