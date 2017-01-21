@@ -38,7 +38,10 @@ CI.main;
 
 samp = CI.MCMC.th_samp;
 
+disp('2.5 percentile:');
 disp(CI.Fl.res.pmil0025); % 2.5 percentile (25 per mille)
+
+disp('97.5 percentile:');
 disp(CI.Fl.res.pmil0975); % 97.5 percentile (975 per mille)
 
 figure;
