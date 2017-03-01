@@ -586,6 +586,10 @@ methods
             Fl.History.n_iter = size(Fl.res.history, 1);
             Fl.History.history = Fl.res.history;
             if nargout >= 2, W = Fl.W; end
+            
+            if isprop(Fl.W, 'Fl')
+                Fl.W.Fl = Fl;
+            end
         end
     end
     function tf = is_valid_res(Fl, res)
