@@ -288,10 +288,12 @@ methods
     function remove_params(Params, th_names)
         % remove_params(Params, th_names)
         Params.Param = Params.Param.remove_params(th_names);
+        Params.remove_constraints_by_params(th_names);
     end
     function remove_params_all(Params)
         % remove_params_all(Params)
         Params.Param = Params.Param.remove_params_all;
+        Params.remove_constraints_all;
     end
 end
 %% Param names
