@@ -1216,7 +1216,7 @@ methods (Static)
         if isempty(opt.is_in_parallel)
             opt.is_in_parallel = is_in_parallel;
         end
-        if isa(Fl.W, 'FitWorkspace') && isa(Fl.W.Data, 'FitData')
+        if isa(Fl.W_, 'FitWorkspace') && isa(Fl.W_.Data, 'FitData')
             if opt.is_in_parallel || opt.load_data
                 try
                     Fl.W.Data.load_data;
