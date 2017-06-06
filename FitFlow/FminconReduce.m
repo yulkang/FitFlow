@@ -35,7 +35,7 @@ function varargout = replace_outputs(x0, to_fix, varargin)
         end
     end
 end
-function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
+function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt2, to_fix] = ...
     replace_args(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon, opt, to_fix)
     % [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, to_fix] = ...
     %     repace_args(fun, x0, A, b, Aeq, beq, lb, ub, nonlcon, to_fix)
@@ -64,7 +64,7 @@ function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
         1:nargout), to_fix);
     x02  = x0(~to_fix);
     
-    % Empty defaults
+    % Defaults: empty or same as the original
     A2 = [];
     b2 = [];
     Aeq2 = [];
@@ -72,6 +72,7 @@ function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
     lb2 = [];
     ub2 = [];
     nonlcon2 = [];
+    opt2 = opt;
     
     % Work on each output
     if ~isempty(A)
@@ -88,6 +89,13 @@ function [fun2, x02, A2, b2, Aeq2, beq2, lb2, ub2, nonlcon2, opt, to_fix] = ...
     end
     if ~isempty(nonlcon)
         nonlcon2 = @(v) nonlcon(FminconReduce.fill_vec(x0, to_fix, v));
+    end
+
+    % If Hessian is given
+    if isobject(opt) && isprop(opt, 'HessianFcn')
+        opt2.HessianFcn = @(v, lambda) ...
+            FminconReduce.reduce_hessian(opt.HessianFcn, ...
+                v, lambda, x0, to_fix);
     end
 end
 function varargout = postprocess_output(outs, to_fix)
@@ -124,6 +132,23 @@ function v2 = fill_mat(v, to_fix, v_diag)
     % Compose a full matrix v2 with varying parameters' matrix v and fixed parameters' matrix v_diag.
     v2(~to_fix, ~to_fix) = v;
     v2(to_fix, to_fix) = diag(v_diag + zeros(1, nnz(to_fix)));
+end
+function v2 = reduce_hessian(hessian_fcn, v, lambda, x0, to_fix)
+    v2 = FminconReduce.slice_mat( ...
+        hessian_fcn(FminconReduce.fill_vec(x0, to_fix, v)), ...
+        to_fix);
+    
+    if (isfield(lambda, 'ineqnonlin') && ~isempty(lambda.ineqnonlin)) ...
+            || (isfield(lambda, 'eqnonlin') && ~isempty(lambda.eqnonlin))
+        warning( ...
+            ['Nonempty lambda.ineqnonlin and/or lambda.eqnonlin - ' ...
+             'current version of FminconReduce.reduce_hessian ' ...
+             'ignores them!']);
+    end
+end
+function v2 = slice_mat(v, to_fix)
+    % v2 = slice_mat(v, to_fix)
+    v2 = v(~to_fix, ~to_fix);
 end
 function [A2, b2] = reduce_constr(A, b, x0, to_fix, cond)
     % [A2, b2] = reduce_constr(A, b, x0, to_fix, cond)
