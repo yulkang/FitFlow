@@ -109,6 +109,8 @@ properties
             'FinDiffRelStep', 1e-3 % If too small, SE becomes funky
             'MaxFunEvals', 1e4
             'UseParallel', 'always'
+%             'OptimalityTolerance', 1e-6 
+%             'StepTolerance', 1e-10
 %             'DiffMinChange', 1e-4
 %             'TolX', 1e-5
             });
