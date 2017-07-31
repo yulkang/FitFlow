@@ -23,6 +23,8 @@ properties
     grad
     hess
     
+    cost_fun = []; % If empty, uses Fl.W.get_cost
+    
     specify_grad = false;
     specify_hess = false;
     
@@ -285,8 +287,11 @@ methods
         [c_outs{1:n_outs}] = S.optim_fun(C_args{:});
 
         el = toc(st);
-        fprintf('Fitting Fl.id=%s finished at %s\n', Fl.id, datestr(now, 'yyyymmddTHHMMSS'));
-        fprintf('Fitting Fl.id=%s took %1.3f seconds.\n', Fl.id, el);
+        fprintf('Fitting Fl.id=%s finished at %s with cost=%d\n', ...
+            Fl.id, datestr(now, 'yyyymmddTHHMMSS'), ...
+            Fl.cost);
+        fprintf('Fitting Fl.id=%s took %1.3f seconds, %d steps.\n', ...
+            Fl.id, el, Fl.History.n_iter);
 
         %% Store in res
         res.optim_fun_name = optim_nam;
@@ -508,7 +513,12 @@ methods
         % to avoid duplication of code.
         % % Fl.W.Params2W_recursive;
 
-        [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        if isempty(Fl.cost_fun)
+            [varargout{1:max(nargout,1)}] = Fl.W.get_cost;
+        else
+            [varargout{1:max(nargout,1)}] = Fl.cost_fun();
+        end
+        
         Fl.cost = varargout{1};
         if nargout >= 2
             Fl.grad = varargout{2};
