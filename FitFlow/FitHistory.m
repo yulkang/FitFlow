@@ -17,8 +17,8 @@ properties
 
     Params
     
+    struct_to_log = struct; % Any field of this struct is logged
     logged_props = {'n_iter'};
-    logged_w = {};
 end
 methods
 function H = FitHistory(varargin)
@@ -64,6 +64,10 @@ function stop = iterate(H, x, optimValues, state)
         H.history.(prop{1})(H.n_iter,1) = H.(prop{1});
     end
     
+    for f = fieldnames(H.struct_to_log)'
+        H.history.(f{1})(H.n_iter,1) = H.struct_to_log.(f{1});
+    end
+    
     if isnan(H.t_fit_started)
         warning('H.t_fit_started not stored! t_fit_duration is set to 0.');
         H.t_fit_duration = 0;
@@ -94,9 +98,11 @@ function history = finish(H, varargin)
     end
     H.history = H.history(1:H.n_iter,:);
     
-    % Enforce matrix form
+    % Enforce matrix form if vector or scalar
     for col = H.history.Properties.VarNames(:)'
-        H.history.(col{1}) = cell2mat2(H.history.(col{1}));
+        if ~iscell(H.history.(col{1}))
+            H.history.(col{1}) = cell2mat2(H.history.(col{1}));
+        end
     end
     
     if nargout >= 1, history = H.history; end
