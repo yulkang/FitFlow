@@ -367,10 +367,11 @@ methods
     end
     function remove_constraints_by_params(Params, param_names)
         % remove_constraints(Params) 
-        % : Remove all constraints
+        % : Remove all constraints, except for lb and ub.
         %
         % remove_constraints_th(Params, param_names) 
-        % : Remove constraints with the specified parameters.
+        % : Remove constraints with the specified parameters,
+        %   except for lb and ub.
         if nargin < 2
             param_names = Params.get_names;
         end
