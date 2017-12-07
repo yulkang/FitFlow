@@ -1081,16 +1081,39 @@ methods
         
         bml.plot.beautify;
     end
-    function name = shorten_th_name(~, name)
+    function name = shorten_th_name(Fl, name)
+        if iscell(name)
+            name = cellfun(@Fl.shorten_th_name, name, ...
+                'UniformOutput', false);
+        	return;
+        end
+        
+        names = strsep_cell(name);
+        
+        for ii = 1:numel(names)
+            name1 = names{ii};
+            if isempty(name1)
+                continue;
+            end
+            
+            name1_aft_1st = name1(2:end);
+            name1_aft_1st = strrep_cell(name1_aft_1st, {
+                'a', ''
+                'e', ''
+                'i', ''
+                'o', ''
+                'u', ''
+                }, [], 'wholeStringOnly', false);
+
+            name1 = [name1(1), name1_aft_1st];
+            names{ii} = name1;
+        end
+        
+        name = fullstr('_', names{:});
         name = strrep_cell(name, {
             'W__', ''
             '__', '-'
             '_', '-'
-            'a', ''
-            'e', ''
-            'i', ''
-            'o', ''
-            'u', ''
             'Dtb-', ''
             'Sq', ''
             }, [], 'wholeStringOnly', false);
