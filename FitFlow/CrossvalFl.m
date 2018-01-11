@@ -85,9 +85,6 @@ methods
             end
         end
     end
-    function res = fit(Cv)
-        res = Cv.fit_Fl;
-    end
     function calc_ix(Cv)
         if ~isempty(Cv.ix_train) && ~isempty(Cv.ix_test)
             % If indices are already given, skip calculating.
@@ -255,7 +252,7 @@ methods
         Cv.ix_train = {};
         Cv.ix_test = {};
     end
-    function res = fit_Fl(Cv)
+    function res = fit(Cv)
         ress = cell(1, Cv.n_set);
         if strcmp(Cv.parallel_mode, 'set')
             parfor i_set = 1:Cv.n_set
@@ -370,10 +367,12 @@ methods
         L = load(file0);
         Fl = L.Fl;
         Fl.res2W;
-        Cv.init(Fl, varargin{:});
-
-        Cv.fit;
         
+        Cv.fit_Fl(Fl, varargin{:});
+    end
+    function fit_Fl(Cv, Fl, varargin)
+        Cv.init(Fl, varargin{:});
+        Cv.fit;
         Cv.save_mat;
     end
     function save_mat(Cv)
