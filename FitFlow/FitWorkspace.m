@@ -45,6 +45,12 @@ function init_child(W, child_name, varargin)
 end
 function [Fl, res] = fit(W, varargin)
     % [Fl, res] = fit(W, varargin)
+    % OPTION:
+    % 'optim_fun', @FminconReduce.fmincon
+    % 'args', {}
+    % 'opts', {}
+    % 'outs', {}
+    % 'Params', []
     %
     % A template for fitting functions.
     % See also: FitFlow.fit_grid
