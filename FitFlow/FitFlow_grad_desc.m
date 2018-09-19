@@ -1077,19 +1077,36 @@ methods
         
         bml.plot.beautify;
     end
-    function name = shorten_th_name(~, name)
-        name = strrep_cell(name, {
-            'W__', ''
-            '__', '-'
-            '_', '-'
-            'a', ''
-            'e', ''
-            'i', ''
-            'o', ''
-            'u', ''
-            'Dtb-', ''
-            'Sq', ''
-            }, [], 'wholeStringOnly', false);
+    function name = shorten_th_name(Fl, name)
+        if iscell(name)
+            for ii = 1:numel(name)
+                name{ii} = Fl.shorten_th_name(name{ii});
+            end
+        else
+            assert(ischar(name));
+            name_compo = strsep(name, '_', ':', true);
+            name_compo1 = cellfun(@(s) s(1), name_compo, ...
+                'UniformOutput', false, 'ErrorHandler', @(varargin) '');
+            name_compo2 = cellfun(@(s) s(2:end), name_compo, ...
+                'UniformOutput', false);
+            
+            name_compo2 = strrep_cell(name_compo2, {
+                'W__', ''
+                '__', '-'
+                '_', '-'
+                'a', ''
+                'e', ''
+                'i', ''
+                'o', ''
+                'u', ''
+                'Dtb-', ''
+                'Sq', ''
+                }, [], 'wholeStringOnly', false);
+            
+            name_compo = cellfun(@(s1, s2) [s1, s2], ...
+                name_compo1, name_compo2, 'UniformOutput', false);
+            name = str_bridge('-', name_compo);
+        end
     end
     function stop = optimplotfval(Fl, x, optimValues, state)
         stop = false;
