@@ -1,12 +1,16 @@
-function C = fmincon_cond(nam, constr)
-% C = fmincon_cond(nam, conds)
+function C = fmincon_cond(nam, constr, numel_nam)
+% C = fmincon_cond(nam, constr, [numel_nam])
 %
+% INPUT:
 % nam   : A cell array of parameter names.
-% conds : A cell array of conditions.
+% constr : A cell array of conditions.
+% numel_nam : Number of elements in each parameter.
+%
+% OUTPUT:
 % C : A cell array containing {A, b, Aeq, beq, nonlcon}.
 %
 % EXAMPLE:
-% >> conds = {
+% >> constr = {
 %     {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
 %     {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
 %     {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
@@ -48,7 +52,10 @@ function C = fmincon_cond(nam, constr)
 % 2015 (c) Yul Kang. yul dot kang dot on at gmail dot com.
 
 n = length(constr);
-p = length(nam);
+if nargin < 3 || isempty(numel_nam)
+    numel_nam = ones(1, length(nam));
+end
+p = sum(numel_nam); % length(nam);
 
 A       = [];
 b       = [];
@@ -64,7 +71,8 @@ nc      = 0;
 nceq    = 0;
 
 for ii = 1:n
-    ix = strcmpfinds(constr{ii}{2}, nam);
+    ix0 = strcmpfinds(constr{ii}{2}, nam);
+    ix = sum(numel_nam(1:(ix0-1))) + (1:numel_nam(ix0));
     
     switch constr{ii}{1}
         case 'A'

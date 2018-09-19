@@ -8,6 +8,7 @@ properties
     th_names = {};
     args = {};
     th_names_all = {};
+    th_numel = [];
 end
 properties (Dependent)
     cond_cell

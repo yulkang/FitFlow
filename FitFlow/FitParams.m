@@ -41,6 +41,8 @@ properties (Dependent) % For convenience
     
     th_names_nonscalar
     
+    th_numel_vec
+    
     th_is_scalar
     th_is_scalar_full
     th_is_free_scalar_full
@@ -372,7 +374,8 @@ methods
         % kind: 'A', 'Aeq', 'c', 'ceq'
         % args: {[a1, a2], b} or {f(a2, a2)}
         %
-        %   EXAMPLE:
+        %   EXAMPLE: Each element of conds is an example input
+        %            i.e., [{kind, th_names}, args]
         %   >> conds = {
         %       {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
         %       {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
@@ -799,6 +802,10 @@ end
 %% Constraint
 function c = get_cond_cell(Params, prefix)
     if nargin < 2, prefix = [Params.get_name '__']; end
+    th_numel_vec = Params.th_numel_vec;
+    for ii = 1:numel(Params.Constr)
+        Params.Constr(ii).th_numel = th_numel_vec;
+    end
     c = Params.Constr.get_cond_cell(prefix);
 end
 function c = get_cond_cell_recursive(Params, prefix)
@@ -828,7 +835,14 @@ function c = get_cond_cell_recursive(Params, prefix)
 end
 function C = get_fmincon_cond(Params)
     th_names_recursive = fieldnames(Params.get_struct_recursive());
-    C = fmincon_cond(th_names_recursive, Params.get_cond_cell_recursive());
+    n_th = numel(th_names_recursive);
+    th_numel_vec_recursive = zeros(1, n_th);
+    for ii = 1:n_th
+        th_numel_vec_recursive(ii) = numel( ...
+            Params.th.(th_names_recursive{ii}));
+    end
+    C = fmincon_cond(th_names_recursive, Params.get_cond_cell_recursive(), ...
+        th_numel_vec_recursive);
 end
 function [c, ceq] = get_constr_res(Params)
     C = Params.get_fmincon_cond;
@@ -1209,14 +1223,19 @@ methods
 end
 %% Parameters - scalar
 methods
+    function v = get.th_numel_vec(Params)
+        v = cellfun(@numel, hVec(struct2cell(Params.th)));
+    end
     function v = get.th_is_scalar(Params)
-        names = Params.th_names;
-        th = Params.th;
-        n = numel(names);
-        v = false(1, n);
-        for ii = 1:n
-            v(ii) = isscalar(th.(names{ii}));
-        end
+        v = Params.th_numel_vec == 1;
+        
+%         names = Params.th_names;
+%         th = Params.th;
+%         n = numel(names);
+%         v = false(1, n);
+%         for ii = 1:n
+%             v(ii) = isscalar(th.(names{ii}));
+%         end
     end
     function v = get.th_is_scalar_full(Params)
         names = Params.th_names;
