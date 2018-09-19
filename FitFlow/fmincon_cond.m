@@ -41,6 +41,10 @@ function C = fmincon_cond(nam, constr, numel_nam)
 % c =       3   % 1*2-5 = -3 <= 0, 2*4-5 = 3 > 0, so 3 is the first positive answer.
 % ceq =    -4   % 1*2-7 = -4 ~= 0, so -4 is the first nonzero answer.
 %
+% EXAMPLE 2: In case of vectors: if th1 is 2-vector and th2 is 3-vector,
+% >> constr = {
+%     {'A',   {'th1', 'th2'}, [1 -1, 1, 1, -1], 2} % [th1, th2] .* [1, -1, 1, 1, -1] <= 2
+%
 % When there are multiple nonlcons for c, 
 % the final c is the first positive c, or the last c.
 %
@@ -72,7 +76,11 @@ nceq    = 0;
 
 for ii = 1:n
     ix0 = strcmpfinds(constr{ii}{2}, nam);
-    ix = sum(numel_nam(1:(ix0-1))) + (1:numel_nam(ix0));
+    ix = [];
+    for jj = 1:numel(ix0)
+        ix1 = sum(numel_nam(1:(ix0(jj)-1))) + (1:numel_nam(ix0(jj)));
+        ix = [ix, ix1];
+    end
     
     switch constr{ii}{1}
         case 'A'

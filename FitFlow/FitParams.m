@@ -352,20 +352,29 @@ methods
         % kind: 'A', 'Aeq', 'c', 'ceq'
         % args: {[a1, a2], b} or {f(a2, a2)}
         %
-        %   EXAMPLE:
-        %   >> conds = {
-        %       {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
-        %       {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
-        %       {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
-        %       {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
-        %       {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
-        %       {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
-        %       {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
-        %       {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
-        %      };
+        % EXAMPLE:
+        % >> conds = {
+        %   {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
+        %   {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
+        %   {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
+        %   {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
+        %   {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %   {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %   {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %   {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %  };
+        % 
+        % EXAMPLE 2: In case of vectors: if th1 is 2-vector and th2 is 3-vector,
+        % >> constr = {
+        %     {'A',   {'th1', 'th2'}, [1 -1, 1, 1, -1], 2} % [th1, th2] .* [1, -1, 1, 1, -1] <= 2
         %
         % See also: FitParams.add_constraint
+%         for ii = 1:numel(constrs)
+%             constr1 = constrs{ii};
+%             Params.add_constraint(constr1{1}, constr1{2}, constr1(3:end));
+%         end
         Params.Constr = Params.Constr.add_constraints(constrs);
+        Params.set_th_numel_to_constr;
     end
     function add_constraint(Params, kind, th_names, args)
         % add_constraint(Params, kind, th_names, args)
@@ -374,21 +383,25 @@ methods
         % kind: 'A', 'Aeq', 'c', 'ceq'
         % args: {[a1, a2], b} or {f(a2, a2)}
         %
-        %   EXAMPLE: Each element of conds is an example input
-        %            i.e., [{kind, th_names}, args]
-        %   >> conds = {
-        %       {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
-        %       {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
-        %       {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
-        %       {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
-        %       {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
-        %       {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
-        %       {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
-        %       {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
-        %      };
+        % EXAMPLE:
+        % >> conds = {
+        %   {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
+        %   {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
+        %   {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
+        %   {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
+        %   {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %   {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %   {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %   {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %  };
+        % 
+        % EXAMPLE 2: In case of vectors: if th1 is 2-vector and th2 is 3-vector,
+        % >> constr = {
+        %     {'A',   {'th1', 'th2'}, [1 -1, 1, 1, -1], 2} % [th1, th2] .* [1, -1, 1, 1, -1] <= 2
         %
         % See also: FitParams.add_constraints
         Params.Constr = Params.Constr.add_constraint(kind, th_names, args);
+        Params.set_th_numel_to_constr;
     end
     function remove_constraints_by_params(Params, param_names)
         % remove_constraints(Params) 
@@ -802,11 +815,14 @@ end
 %% Constraint
 function c = get_cond_cell(Params, prefix)
     if nargin < 2, prefix = [Params.get_name '__']; end
+    Params.set_th_numel_to_constr;
+    c = Params.Constr.get_cond_cell(prefix);
+end
+function set_th_numel_to_constr(Params)
     th_numel_vec = Params.th_numel_vec;
     for ii = 1:numel(Params.Constr)
         Params.Constr(ii).th_numel = th_numel_vec;
     end
-    c = Params.Constr.get_cond_cell(prefix);
 end
 function c = get_cond_cell_recursive(Params, prefix)
     if nargin < 2, prefix = ''; end % [Params.get_name '__']; end

@@ -99,32 +99,51 @@ methods
             c = Constr.get_cond_cell;
         end
         n = numel(c);
+        th_numel_vec = Constr.th_numel;
 
         for ii = 1:n
             [kind, th_names] = deal(c{ii}{1:2});
             args = c{ii}(3:end);
+            numel1 = th_numel_vec(ii);
+            if ismember(kind, {'A', 'Aeq'})
+                if numel1 > 1
+                    str_coef = ['[', sprintf('%+3g,', args{1}), ']'];
+                    str_th = ['[' sprintf('%s(:)'',', th_names{:}), ']'];
+                    
+                    switch kind
+                        case 'A'
+                            fprintf('%s .* %s <= %5g\n', str_coef, str_th, args{2}(1));
 
-            switch kind
-                case 'A'
-                    C = csprintf(' %+3g * %-20s', args{1}, th_names);
-                    s = sprintf('%s', C{:});
-                    fprintf('%s <= %5g\n', s, args{2}(1));
+                        case 'Aeq'
+                            fprintf('%s .* %s <= %5g\n', str_coef, str_th, args{2}(1));
+                    end
+                    
+                else
+                    switch kind
+                        case 'A'
+                            C = csprintf(' %+3g * %-20s', args{1}, th_names);
+                            s = sprintf('%s', C{:});
+                            fprintf('%s <= %5g\n', s, args{2}(1));
 
-                case 'Aeq'
-                    C = csprintf(' %+3g * %-20s', args{1}, th_names);
-                    s = sprintf('%s', C{:});
-                    fprintf('%s == %5g\n', s, args{2}(1));
+                        case 'Aeq'
+                            C = csprintf(' %+3g * %-20s', args{1}, th_names);
+                            s = sprintf('%s', C{:});
+                            fprintf('%s == %5g\n', s, args{2}(1));
+                    end
+                end
+            else
+                switch kind
+                    case 'c'
+                        s = sprintf('%-20s, ', th_names{:});
+                        fprintf('(%s) %-29s <= 0\n', ...
+                            s, char(args{1}));
 
-                case 'c'
-                    s = sprintf('%-20s, ', th_names{:});
-                    fprintf('(%s) %-29s <= 0\n', ...
-                        s, char(args{1}));
+                    case 'ceq'
+                        s = sprintf('%-20s, ', th_names{:});
+                        fprintf('(%s) %-29s == 0\n', ...
+                            s, char(args{1}));
 
-                case 'ceq'
-                    s = sprintf('%-20s, ', th_names{:});
-                    fprintf('(%s) %-29s == 0\n', ...
-                        s, char(args{1}));
-
+                end
             end
         end
 
