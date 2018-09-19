@@ -350,6 +350,18 @@ methods
         % kind: 'A', 'Aeq', 'c', 'ceq'
         % args: {[a1, a2], b} or {f(a2, a2)}
         %
+        %   EXAMPLE:
+        %   >> conds = {
+        %       {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
+        %       {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
+        %       {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
+        %       {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
+        %       {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %       {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %       {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %       {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %      };
+        %
         % See also: FitParams.add_constraint
         Params.Constr = Params.Constr.add_constraints(constrs);
     end
@@ -359,6 +371,18 @@ methods
         % th_names: {'th1', 'th2'}
         % kind: 'A', 'Aeq', 'c', 'ceq'
         % args: {[a1, a2], b} or {f(a2, a2)}
+        %
+        %   EXAMPLE:
+        %   >> conds = {
+        %       {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
+        %       {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
+        %       {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
+        %       {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
+        %       {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %       {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %       {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %       {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %      };
         %
         % See also: FitParams.add_constraints
         Params.Constr = Params.Constr.add_constraint(kind, th_names, args);

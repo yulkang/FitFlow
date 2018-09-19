@@ -42,6 +42,19 @@ methods
     end
     function Constr = add_constraint(Constr, kind, th_names, args)    
         % Constr = add_constraint(Constr, kind, th_names, args)
+        %
+        % EXAMPLE:
+        % >> conds = {
+        %   {'A',   {'th1', 'th3'}, [1 -1], 2}            % th1 - th2 <= 2
+        %   {'A',   {'th2', 'th4'}, [1 -1], 2}            % th1 - th2 <= 2
+        %   {'Aeq', {'th1', 'th3'}, [1  1], 3}            % th1 + th3 == 3
+        %   {'Aeq', {'th2', 'th4'}, [1  1], 3}            % th1 + th3 == 3
+        %   {'c'    {'th1', 'th3'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %   {'c'    {'th2', 'th4'}, @(v) prod(v) - 5}     % th1 * th2 <= 5
+        %   {'ceq', {'th1', 'th3'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %   {'ceq', {'th2', 'th4'}, @(v) prod(v) - 7}     % th1 * th3 == 7
+        %  };
+        
         if isempty(kind)
             return;
         end
