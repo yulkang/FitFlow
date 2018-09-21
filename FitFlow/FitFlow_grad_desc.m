@@ -814,7 +814,8 @@ methods
                 curr_fun = S.fun{ii}(Fl);
                 stop = stop || curr_fun(th_vec_, S.optimValues, S.state);
             catch err
-                if abs(nargin(S.fun{ii})) >= 4
+                nargin1 = nargin(S.fun{ii});
+                if abs(nargin1) >= 4 || nargin1 == -1
                     curr_fun = S.fun{ii};
                     try
                         stop = stop || curr_fun(Fl, th_vec_, S.optimValues, S.state);
