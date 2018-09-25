@@ -254,11 +254,16 @@ methods
             th_names = {th_names};
         end
         
-        incl = ismember(Params.th_names, th_names);
-        new_vec = Params.th_vec(incl);
-        Params.th0_vec(incl) = new_vec;
-        Params.th_lb_vec(incl) = new_vec;
-        Params.th_ub_vec(incl) = new_vec;
+        for th1 = th_names(:)'
+            Params.th_ub.(th1{1}) = Params.th.(th1{1});
+            Params.th_lb.(th1{1}) = Params.th.(th1{1});
+        end
+        
+%         incl = ismember(Params.th_names, th_names);
+%         new_vec = Params.th_vec(incl);
+%         Params.th0_vec(incl) = new_vec;
+%         Params.th_lb_vec(incl) = new_vec;
+%         Params.th_ub_vec(incl) = new_vec;
         
         % Slow
 %         for name = th_names(:)'
@@ -272,11 +277,16 @@ methods
             th_names = {th_names};
         end
         
-        incl = ismember(Params.th_names, th_names);
-        new_vec = Params.th0_vec(incl);
-        Params.th_vec(incl) = new_vec;
-        Params.th_lb_vec(incl) = new_vec;
-        Params.th_ub_vec(incl) = new_vec;
+        for th1 = th_names(:)'
+            Params.th_ub.(th1{1}) = Params.th0.(th1{1});
+            Params.th_lb.(th1{1}) = Params.th0.(th1{1});
+        end
+        
+%         incl = ismember(Params.th_names, th_names);
+%         new_vec = Params.th0_vec(incl);
+%         Params.th_vec(incl) = new_vec;
+%         Params.th_lb_vec(incl) = new_vec;
+%         Params.th_ub_vec(incl) = new_vec;
 
         % Slow
 %         for name = th_names(:)'
