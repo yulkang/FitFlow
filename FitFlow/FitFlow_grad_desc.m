@@ -1139,9 +1139,29 @@ methods
 
         history = Fl.History.history(1:n_iter, :);    
 
+        % Information criteria
+        nll = history.fval(end);
+        k = numel(Fl.W.th_vec);
+        n_fixed = nnz(Fl.W.th_fix_vec);
+        k = k - n_fixed;
+        n = Fl.W.get_n_tr;
+        bic = 2 * nll + k * log(n);
+        
         plot(history.n_iter, history.fval, 'd', ...
-            'MarkerFaceColor', 'm', 'MarkerEdgeColor', 'k');
-        xlabel(sprintf('iter=%d, fval=%1.2f', n_iter, history.fval(end)));    
+            'MarkerFaceColor', 'c', 'MarkerEdgeColor', [0.5, 0.5, 0.5]);
+        
+        str = sprintf('I=%d, L=%1.2f, B=%1.2f\nk=%d, n=%d', ...
+            n_iter, nll, bic, k, n);
+        if ~isempty(history.fval)
+            fvmax = history.fval(1);
+        else
+            fvmax = 1;
+        end
+        
+        bml.plot.text_update(1, fvmax, str, ...
+            'HorizontalAlignment', 'left', ...
+            'VerticalAlignment', 'top');
+%         xlabel(str);    
     end
 end
 %% Copy
