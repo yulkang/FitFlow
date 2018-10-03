@@ -12,6 +12,12 @@ properties
 end
 %% Internal variables
 properties (Dependent)
+    n_tr
+end
+properties
+    n_tr_ = []; % If nonempty (scalar), n_tr is forced to the value.
+end
+properties (Dependent)
     Data
 end
 properties (Access=private)
@@ -232,12 +238,23 @@ methods
 end
 %% Data - etc
 methods
+    function n = get.n_tr(W)
+        n = W.get_n_tr;
+    end
     function n = get_n_tr(W)
-        if isa(W.Data, 'FitData')
+        if ~isempty(W.n_tr_)
+            n = W.n_tr_;
+        elseif isa(W.Data, 'FitData')
             n = W.Data.get_n_tr;
         else
             n = nan;
         end
+    end
+    function set.n_tr(W, n)
+        if isa(W.Data, 'FitData')
+            warning('W.Data is FitData! Setting n_tr may make W.n_tr and W.Data.n_tr different!');
+        end
+        W.n_tr_ = n;
     end
     function n = get_n_tr0(W)
         if isa(W.Data, 'FitData')
