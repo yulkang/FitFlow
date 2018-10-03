@@ -1004,7 +1004,7 @@ methods
 
 %         delete(findobj(gca, 'Type', 'Text'));
         for ii = 1:n
-            for jj = 1
+            for jj = 1 % :2
                 text_update(x_pos(jj), ii, labels{ii, jj}, ...
                     'HorizontalAlignment', h_align{jj});
             end
@@ -1019,13 +1019,16 @@ methods
         % stop = optimplotx_vec(Fl, name, x, optimValues, state, varargin)
         S = varargin2S(varargin, {
             'src', 'x' % 'x'|'grad'
+            'n_label_max', 7
             });
         
         stop = false;
         
         incl = Fl.W.is_in_th(name);
-        lb = min(Fl.W.th_lb_vec(incl));
-        ub = max(Fl.W.th_ub_vec(incl));
+        lb0 = Fl.W.th_lb_vec(incl);
+        lb = min(lb0);
+        ub0 = Fl.W.th_ub_vec(incl);
+        ub = max(ub0);
         
         switch S.src
             case 'x'
@@ -1053,6 +1056,23 @@ methods
             set(h_bar, 'FaceColor', color, 'LineStyle', 'none');
             
             hold on;
+        end
+        
+        labels = cell(n, 2);
+        h_align = {'left', 'right'};
+        x_pos  = [0.05, 0.95] * (ub - lb) + lb;
+        
+        if n <= S.n_label_max
+            for ii = 1:n
+                labels{ii,1} = sprintf('%d: %1.3g  (%1.2g - %1.2g)', ...
+                    ii, x(ii), lb0(ii), ub0(ii));
+                labels{ii,2} = sprintf('');        
+
+                for jj = 1 % :2
+                    text_update(x_pos(jj), ii, labels{ii, jj}, ...
+                        'HorizontalAlignment', h_align{jj});
+                end
+            end
         end
         hold off;
         
