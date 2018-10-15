@@ -230,15 +230,18 @@ methods
         th = size(Prm.th);
     end
     function set.th0(Prm, th)
-        assert(isequal(size(th), Prm.get_size));
+        assert(isequal(size(th), Prm.get_size), ...
+            'The size of th0 doesn''t match with th!');
         Prm.th0 = th;
     end
     function set.th_lb(Prm, th)
-        assert(isequal(size(th), Prm.get_size));
+        assert(isequal(size(th), Prm.get_size), ...
+            'The size of th_lb doesn''t match with th!');
         Prm.th_lb = th;
     end
     function set.th_ub(Prm, th)
-        assert(isequal(size(th), Prm.get_size));
+        assert(isequal(size(th), Prm.get_size), ...
+            'The size of th_ub doesn''t match with th!');
         Prm.th_ub = th;
     end
     function v = get.th_fix(Prm)
