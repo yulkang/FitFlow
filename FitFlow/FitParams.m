@@ -248,15 +248,23 @@ methods
             Params.set_(name{1}, 'th', Params.get_(name{1}, 'th0'));
         end
     end
-    function fix_to_th_(Params, th_names)
+    function fix_to_th_(Params, th_names, ix)
         if nargin < 2, th_names = Params.th_names; end
+        if nargin < 3, ix = ':'; end
         if ischar(th_names)
             th_names = {th_names};
         end
         
         for th1 = th_names(:)'
-            Params.th_ub.(th1{1}) = Params.th.(th1{1});
-            Params.th_lb.(th1{1}) = Params.th.(th1{1});
+            if ischar(ix) && isequal(ix, ':')
+                Params.th0.(th1{1}) = Params.th.(th1{1});
+                Params.th_ub.(th1{1}) = Params.th.(th1{1});
+                Params.th_lb.(th1{1}) = Params.th.(th1{1});
+            else
+                Params.th0.(th1{1})(ix) = Params.th.(th1{1})(ix);
+                Params.th_ub.(th1{1})(ix) = Params.th.(th1{1})(ix);
+                Params.th_lb.(th1{1})(ix) = Params.th.(th1{1})(ix);
+            end
         end
         
 %         incl = ismember(Params.th_names, th_names);
@@ -271,15 +279,23 @@ methods
 %             Params.th_fix.(name{1}) = true;
 %         end
     end
-    function fix_to_th0_(Params, th_names)
+    function fix_to_th0_(Params, th_names, ix)
         if nargin < 2, th_names = Params.th_names; end
+        if nargin < 3, ix = ':'; end
         if ischar(th_names)
             th_names = {th_names};
         end
         
         for th1 = th_names(:)'
-            Params.th_ub.(th1{1}) = Params.th0.(th1{1});
-            Params.th_lb.(th1{1}) = Params.th0.(th1{1});
+            if ischar(ix) && isequal(ix, ':')
+                Params.th.(th1{1}) = Params.th0.(th1{1});
+                Params.th_ub.(th1{1}) = Params.th0.(th1{1});
+                Params.th_lb.(th1{1}) = Params.th0.(th1{1});
+            else
+                Params.th.(th1{1})(ix) = Params.th0.(th1{1})(ix);
+                Params.th_ub.(th1{1})(ix) = Params.th0.(th1{1})(ix);
+                Params.th_lb.(th1{1})(ix) = Params.th0.(th1{1})(ix);
+            end
         end
         
 %         incl = ismember(Params.th_names, th_names);
