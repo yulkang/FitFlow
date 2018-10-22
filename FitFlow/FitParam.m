@@ -231,17 +231,17 @@ methods
     end
     function set.th0(Prm, th)
         assert(isequal(size(th), Prm.get_size), ...
-            'The size of th0 doesn''t match with th!');
+            'The size of th0.%s doesn''t match with th!', Prm.name); %#ok<MCSUP>
         Prm.th0 = th;
     end
     function set.th_lb(Prm, th)
         assert(isequal(size(th), Prm.get_size), ...
-            'The size of th_lb doesn''t match with th!');
+            'The size of th_lb.%s doesn''t match with th!', Prm.name); %#ok<MCSUP>
         Prm.th_lb = th;
     end
     function set.th_ub(Prm, th)
         assert(isequal(size(th), Prm.get_size), ...
-            'The size of th_ub doesn''t match with th!');
+            'The size of th_ub.%s doesn''t match with th!', Prm.name); %#ok<MCSUP>
         Prm.th_ub = th;
     end
     function v = get.th_fix(Prm)
