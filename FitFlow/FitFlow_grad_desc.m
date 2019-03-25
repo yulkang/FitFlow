@@ -207,7 +207,7 @@ methods
             'opts', {}
             'outs', {}
             'solver', 'fmincon'
-            'to_continue_fit', true % If true, skip init_bef_fit
+%             'to_continue_fit', true % If true, skip init_bef_fit
             'cost_fun', Fl.cost_fun
             });
         
@@ -285,18 +285,20 @@ methods
         C_args = struct2cell(S.args);
 
         %% Init history
-        if S.to_continue_fit
-            if isfield(Fl.res, 'tSt')
-                st = Fl.res.tSt;
-            else
-                st = tic;
-            end
-        else
-            st = tic;
-            
+        if Fl.History.n_iter == 0
             Fl.History.init_bef_fit(Fl.W);
-            Fl.History.n_iter = 0;
         end
+        st = tic;
+%         if S.to_continue_fit
+%             if isfield(Fl.res, 'tSt')
+%                 st = Fl.res.tSt;
+%             else
+%                 st = tic;
+%             end
+%         else
+%             st = tic;
+%             Fl.History.n_iter = 0;
+%         end
 
         %% Run optimization
         fprintf('Fitting Fl.id=%s began at %s\n', Fl.id, datestr(now, 'yyyymmddTHHMMSS'));
