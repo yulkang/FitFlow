@@ -207,7 +207,7 @@ methods
             'opts', {}
             'outs', {}
             'solver', 'fmincon'
-            'to_continue_fit', false % If true, skip init_bef_fit
+            'to_continue_fit', true % If true, skip init_bef_fit
             'cost_fun', Fl.cost_fun
             });
         
