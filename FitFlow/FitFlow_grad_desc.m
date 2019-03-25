@@ -228,9 +228,9 @@ methods
         end
 
         %% Initialize Fl
-        if ~S.to_continue_fit
+%         if ~S.to_continue_fit || Fl.History.n_iter == 0
             Fl.init_bef_fit;
-        end
+%         end
 
         %% Prepare arguments for optim_fun
         % Arguments - get from Fl.fit_arg(S.optim_fun)
@@ -491,14 +491,14 @@ methods
 end
 %% Fitting process
 methods
-    function init_bef_fit(Fl, Params)
+    function init_bef_fit(Fl, Params, varargin)        
 %         Fl.W = Fl.W0; % Fl.W0.deep_copy; % Too much problems with deep copying..
 
         if nargin >= 2 && ~isempty(Params)
             Fl.W.merge_flat(Params);
         end
 
-        Fl.W.set_struct_recursive(Fl.W.get_struct_recursive('th0'), 'th');
+%         Fl.W.set_struct_recursive(Fl.W.get_struct_recursive('th0'), 'th');
 
         % Not calling Fl.W.Params2W_recursive from FitFlow_grad_desc,
         % because it demands workspaces to have properties with the same name
