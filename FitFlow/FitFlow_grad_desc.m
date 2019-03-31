@@ -192,6 +192,9 @@ methods
     end
 end
 %% Fit
+properties
+    fit_started_already = false; % set to true on first call to fit()    
+end
 methods
     function [res, W] = fit(Fl, varargin)
         % [res, W] = fit(Fl, ...)
@@ -285,20 +288,19 @@ methods
         C_args = struct2cell(S.args);
 
         %% Init history
-        if Fl.History.n_iter == 0
+        if Fl.fit_started_already
+            if isfield(Fl.res, 'tSt')
+                st = Fl.res.tSt;
+            else
+                st = tic;
+            end
+        else
+            Fl.fit_started_already = true;
+            st = tic;
+            
             Fl.History.init_bef_fit(Fl.W);
+            Fl.History.n_iter = 0;
         end
-        st = tic;
-%         if S.to_continue_fit
-%             if isfield(Fl.res, 'tSt')
-%                 st = Fl.res.tSt;
-%             else
-%                 st = tic;
-%             end
-%         else
-%             st = tic;
-%             Fl.History.n_iter = 0;
-%         end
 
         %% Run optimization
         fprintf('Fitting Fl.id=%s began at %s\n', Fl.id, datestr(now, 'yyyymmddTHHMMSS'));

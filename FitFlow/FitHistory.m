@@ -36,7 +36,7 @@ function init_bef_fit(H, Params)
     H.n_iter  = 0;
     H.th_names = hVec(H.Params.get_names_recursive);
     
-    th0 = H.Params.get_struct_recursive;
+%     th0 = H.Params.get_struct_recursive;
     
     H.history = dataset;
     for column = [H.logged_props(:)', {'fval', 't_clock_last_iter', 't_elapsed'}]
