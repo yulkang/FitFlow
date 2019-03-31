@@ -945,13 +945,13 @@ methods
         
         switch S.src
             case 'x'
-                names = Fl.W.th_names_scalar;
+                names0 = Fl.W.th_names_scalar;
                 x = x(Fl.W.th_is_scalar_full);
                 
                 lb = Fl.W.th_lb_vec_scalar;
                 ub = Fl.W.th_ub_vec_scalar;
             case 'grad'
-                names = Fl.W.th_names_scalar;
+                names0 = Fl.W.th_names_scalar;
                 x = Fl.W.th_grad_vec;
                 x = x(Fl.W.th_is_scalar_full);
                 
@@ -968,11 +968,11 @@ methods
         end
         lb = lb(S.ix);
         ub = ub(S.ix);
-        names = names(S.ix);
+        names0 = names0(S.ix);
         x = x(S.ix);
         
         % Shorten names to save space
-        names = Fl.shorten_th_name(names);
+        names = Fl.shorten_th_name(names0);
         
         % Show normalized plot
         n = length(names);
@@ -1003,9 +1003,36 @@ methods
         x_pos  = [0.05, 0.95];
         h_align = {'left', 'right'};
 
+        % Compute the sign of gradients to determine color
+        history = Fl.History.history;
+        n_iter = Fl.History.n_iter;
+        history = history(1:n_iter, :);
+        colors = cell(n, 1);
+        
         for ii = 1:n
-            labels{ii,1} = sprintf('%s: %1.3g  (%1.2g - %1.2g)', ...
-                names{ii}, x(ii), lb(ii), ub(ii));
+            name1 = names{ii};
+            name0 = names0{ii};
+            x1 = x(ii);
+            
+            % show gradient as color and relative magnitude
+            if n_iter > 1
+                grad1 = history.(name0)(n_iter) ...
+                    - history.(name0)(n_iter - 1);
+            else
+                grad1 = 0;
+            end
+            log10_grad_rel_magnitude = log10(abs(grad1)/abs(x1));
+            if grad1 > 0
+                color1 = [1 0 0];
+            elseif grad1 < 0
+                color1 = [0 0 1];
+            else
+                color1 = [0 0 0];
+            end
+            colors{ii} = color1;
+            
+            labels{ii,1} = sprintf('%s:%1.2g(e%+1.0f;%1.2g~%1.2g)', ...
+                name1, x1, log10_grad_rel_magnitude, lb(ii), ub(ii));
             labels{ii,2} = sprintf('');        
         end
 
@@ -1013,7 +1040,8 @@ methods
         for ii = 1:n
             for jj = 1
                 text_update(x_pos(jj), ii, labels{ii, jj}, ...
-                    'HorizontalAlignment', h_align{jj});
+                    'HorizontalAlignment', h_align{jj}, ...
+                    'Color', colors{ii});
             end
         end
         hold off;
