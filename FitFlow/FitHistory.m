@@ -78,6 +78,9 @@ function stop = iterate(H, x, optimValues, state)
     for th = H.th_names
         % Convert to row vector
         v = S.(th{1})(:)';
+        if ~iscell(H.history.(th{1}))
+            H.history.(th{1}) = row2cell(H.history.(th{1}));
+        end 
         H.history.(th{1}){H.n_iter, 1} = v; % (H.n_iter, 1:length(v)) = v;
     end
     

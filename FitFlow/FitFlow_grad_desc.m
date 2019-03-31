@@ -1016,8 +1016,11 @@ methods
             
             % show gradient as color and relative magnitude
             if n_iter > 1
-                grad1 = history.(name0)(n_iter) ...
-                    - history.(name0)(n_iter - 1);
+                v = history.(name0);
+                if iscell(v)
+                    v = cell2mat2(v);
+                end
+                grad1 = v(n_iter) - v(n_iter - 1);
             else
                 grad1 = 0;
             end
