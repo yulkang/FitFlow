@@ -304,6 +304,7 @@ function load_data(Dat, field_excluded, field_included)
     if nargin < 3, field_included = Dat.field_included; end
     
     if isempty(pth), return; end
+    pth = strrep(pth, '../Data/', '../../Data_2D/');
     
     fields_exist = who('-file', pth);
     if isscalar(fields_exist) && strcmp(fields_exist{1}, Dat.dataset_name)
